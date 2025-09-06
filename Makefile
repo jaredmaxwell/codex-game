@@ -1,0 +1,12 @@
+CXX = g++
+CXXFLAGS = -std=c++17 $(shell sdl2-config --cflags)
+LDFLAGS = $(shell sdl2-config --libs)
+SRC = src/main.cpp
+
+all: game
+
+game: $(SRC)
+	$(CXX) $(CXXFLAGS) -o $@ $(SRC) $(LDFLAGS)
+
+clean:
+	rm -f game
