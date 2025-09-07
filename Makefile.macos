@@ -1,7 +1,8 @@
 # macOS Makefile
 CXX = clang++
-CXXFLAGS = -std=c++17 -I/opt/homebrew/include/SDL2 -I/opt/homebrew/include
-LDFLAGS = -L/opt/homebrew/lib -lSDL2 -lSDL2_ttf -lSDL2_image -framework Cocoa
+HOMEBREW_PREFIX = $(shell brew --prefix)
+CXXFLAGS = -std=c++17 -I$(HOMEBREW_PREFIX)/include/SDL2 -I$(HOMEBREW_PREFIX)/include
+LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lSDL2 -lSDL2_ttf -lSDL2_image -framework Cocoa
 SRC = src/main.cpp
 
 all: game

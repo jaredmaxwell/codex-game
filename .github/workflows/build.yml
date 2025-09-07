@@ -52,6 +52,16 @@ jobs:
       run: |
         brew install sdl2 sdl2_ttf sdl2_image pkg-config
         
+    - name: Debug SDL2 paths
+      run: |
+        echo "Homebrew prefix: $(brew --prefix)"
+        echo "SDL2 include path: $(brew --prefix sdl2)/include"
+        echo "SDL2_ttf include path: $(brew --prefix sdl2_ttf)/include"
+        echo "SDL2_image include path: $(brew --prefix sdl2_image)/include"
+        find $(brew --prefix) -name "SDL.h" 2>/dev/null || echo "SDL.h not found"
+        find $(brew --prefix) -name "SDL_ttf.h" 2>/dev/null || echo "SDL_ttf.h not found"
+        find $(brew --prefix) -name "SDL_image.h" 2>/dev/null || echo "SDL_image.h not found"
+        
     - name: Build for macOS
       run: |
         make -f Makefile.macos
