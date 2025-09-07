@@ -24,6 +24,10 @@ jobs:
         
         REM Install SDL2 dependencies
         C:\vcpkg\vcpkg.exe install sdl2:x64-windows sdl2-ttf:x64-windows sdl2-image:x64-windows
+        
+        REM Debug: Show vcpkg include structure
+        echo "=== vcpkg include directory structure ==="
+        dir "C:\vcpkg\installed\x64-windows\include" /s
     
     - name: Build with MSBuild
       shell: cmd
