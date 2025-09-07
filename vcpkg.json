@@ -5,6 +5,9 @@
   "dependencies": [
     "sdl2",
     "sdl2-ttf",
-    "sdl2-image"
+    {
+      "name": "sdl2-image",
+      "features": ["png"]
+    }
   ]
 }
