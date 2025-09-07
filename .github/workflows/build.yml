@@ -93,12 +93,17 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Setup Emscripten
-      uses: guiandco/emscripten-action@v1
-      with:
-        version: '3.1.50'
+      run: |
+        git clone https://github.com/emscripten-core/emsdk.git
+        cd emsdk
+        ./emsdk install latest
+        ./emsdk activate latest
+        echo "EMSDK_PATH=$PWD" >> $GITHUB_ENV
+        echo "$PWD" >> $GITHUB_PATH
         
     - name: Build for WebAssembly
       run: |
+        source $EMSDK_PATH/emsdk_env.sh
         mkdir build-web
         cd build-web
         emcmake cmake .. -DCMAKE_BUILD_TYPE=Release
