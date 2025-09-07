@@ -7,6 +7,11 @@
 #include <ctime>
 #include <string>
 
+// Platform-specific main function handling
+#ifdef __APPLE__
+#define SDL_MAIN_HANDLED
+#endif
+
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
 const int PLAYER_SIZE = 16;
@@ -547,3 +552,10 @@ int SDL_main(int argc, char* argv[]) {
     SDL_Quit();
     return 0;
 }
+
+// macOS wrapper main function
+#ifdef __APPLE__
+int main(int argc, char* argv[]) {
+    return SDL_main(argc, argv);
+}
+#endif
