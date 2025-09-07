@@ -12,6 +12,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Cache MSYS2 packages
+      uses: actions/cache@v4
+      with:
+        path: C:\msys64\var\cache\pacman\pkg
+        key: msys2-packages-${{ runner.os }}-${{ hashFiles('**/Makefile') }}
+        restore-keys: |
+          msys2-packages-${{ runner.os }}-
+          msys2-packages-
+    
     - name: Install MSYS2
       run: |
         choco install msys2 -y
@@ -35,6 +44,17 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Cache Homebrew packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          /opt/homebrew/Cellar
+          /opt/homebrew/Library/Homebrew/vendor
+        key: homebrew-${{ runner.os }}-${{ hashFiles('**/Makefile.macos') }}
+        restore-keys: |
+          homebrew-${{ runner.os }}-
+          homebrew-
+    
     - name: Install SDL2 dependencies
       run: |
         brew install sdl2 sdl2_ttf sdl2_image pkg-config
@@ -53,6 +73,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Cache APT packages
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt
+        key: apt-${{ runner.os }}-${{ hashFiles('**/Makefile.linux') }}
+        restore-keys: |
+          apt-${{ runner.os }}-
+          apt-
     
     - name: Install SDL2 dependencies
       run: |
