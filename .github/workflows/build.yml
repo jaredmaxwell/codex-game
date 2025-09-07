@@ -120,7 +120,7 @@ jobs:
     - name: Create WebAssembly zip
       run: |
         cd build-web
-        zip -r game-web.zip game.html game.js game.wasm assets/
+        zip -r game-web.zip index.html game.js game.wasm assets/
         
     - name: Upload WebAssembly build
       uses: actions/upload-artifact@v4
