@@ -57,6 +57,7 @@ jobs:
       run: |
         make -f Makefile.macos
         mv game game-macos
+        chmod +x game-macos
         
     - name: Upload macOS build
       uses: actions/upload-artifact@v4
@@ -78,6 +79,7 @@ jobs:
       run: |
         make -f Makefile.linux
         mv game game-linux
+        chmod +x game-linux
         
     - name: Upload Linux build
       uses: actions/upload-artifact@v4
