@@ -87,8 +87,31 @@ jobs:
         name: game-linux
         path: game-linux
 
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Emscripten
+      uses: guiandco/emscripten-action@v1
+      with:
+        version: '3.1.50'
+        
+    - name: Build for WebAssembly
+      run: |
+        mkdir build-web
+        cd build-web
+        emcmake cmake .. -DCMAKE_BUILD_TYPE=Release
+        emmake make -j$(nproc)
+        
+    - name: Upload WebAssembly build
+      uses: actions/upload-artifact@v4
+      with:
+        name: game-web
+        path: build-web/game.html
+
   create-release:
-    needs: [build-windows, build-macos, build-linux]
+    needs: [build-windows, build-macos, build-linux, build-web]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     permissions:
@@ -112,6 +135,12 @@ jobs:
         name: game-linux
         path: ./releases/linux/
         
+    - name: Download WebAssembly build
+      uses: actions/download-artifact@v4
+      with:
+        name: game-web
+        path: ./releases/web/
+        
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
@@ -124,23 +153,24 @@ jobs:
           
           ### Downloads:
           - **Windows**: `game.exe` - Run directly on Windows
-          - **macOS**: `game` - Run directly on macOS
-          - **Linux**: `game` - Run directly on Linux
+          - **macOS**: `game-macos` - Run directly on macOS
+          - **Linux**: `game-linux` - Run directly on Linux
+          - **Web**: `game.html` - Open in any modern web browser (works on mobile too!)
           
           ### Controls:
-          - **WASD**: Move player
-          - **Space**: Attack
-          - **ESC**: Quit
+          - **Desktop**: WASD to move, J to attack, ESC to quit
+          - **Mobile/Web**: Touch and drag to move, tap to attack
           
           ### Game Features:
           - Dynamic enemy spawning and leveling
           - Shard collection system
           - Magnet power-ups
-          - Cross-platform compatibility
+          - Cross-platform compatibility (Desktop + Web)
         files: |
           ./releases/windows/game.exe
           ./releases/macos/game-macos
           ./releases/linux/game-linux
+          ./releases/web/game.html
         draft: false
         prerelease: false
       env:

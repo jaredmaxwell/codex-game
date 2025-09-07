@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codex Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        
+        #game-container {
+            text-align: center;
+        }
+        
+        canvas {
+            border: 2px solid #333;
+            background-color: #000;
+        }
+        
+        #controls {
+            margin-top: 20px;
+            color: #fff;
+            font-size: 14px;
+        }
+        
+        #loading {
+            color: #fff;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        
+        .control-section {
+            margin: 10px 0;
+        }
+        
+        .control-section h3 {
+            margin: 5px 0;
+            color: #ccc;
+        }
+        
+        .control-section p {
+            margin: 2px 0;
+            color: #999;
+        }
+        
+        @media (max-width: 768px) {
+            canvas {
+                max-width: 100%;
+                height: auto;
+            }
+            
+            #controls {
+                font-size: 12px;
+                padding: 0 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="loading">Loading Codex Game...</div>
+        <canvas id="canvas" width="800" height="600"></canvas>
+        <div id="controls">
+            <div class="control-section">
+                <h3>Desktop Controls:</h3>
+                <p><strong>WASD</strong> - Move player</p>
+                <p><strong>J</strong> - Attack</p>
+                <p><strong>ESC</strong> - Quit</p>
+            </div>
+            <div class="control-section">
+                <h3>Mobile/Touch Controls:</h3>
+                <p><strong>Touch and drag</strong> - Move player</p>
+                <p><strong>Tap</strong> - Attack in direction of movement</p>
+            </div>
+            <div class="control-section">
+                <h3>Game Features:</h3>
+                <p>• Dynamic enemy spawning and leveling</p>
+                <p>• Shard collection system</p>
+                <p>• Magnet power-ups</p>
+                <p>• Cross-platform compatibility</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Hide loading text when game starts
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                const loading = document.getElementById('loading');
+                if (loading) {
+                    loading.style.display = 'none';
+                }
+            }, 2000);
+        });
+        
+        // Handle canvas sizing for mobile
+        function resizeCanvas() {
+            const canvas = document.getElementById('canvas');
+            const container = document.getElementById('game-container');
+            
+            if (window.innerWidth < 800) {
+                const scale = window.innerWidth / 800;
+                canvas.style.width = (800 * scale) + 'px';
+                canvas.style.height = (600 * scale) + 'px';
+            } else {
+                canvas.style.width = '800px';
+                canvas.style.height = '600px';
+            }
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+    </script>
+</body>
+</html>
