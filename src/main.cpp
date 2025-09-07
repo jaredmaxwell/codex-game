@@ -1,4 +1,4 @@
-#ifdef _WIN32
+#if defined(__EMSCRIPTEN__) || defined(_WIN32)
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <SDL_image.h>
@@ -14,6 +14,10 @@
 #include <string>
 
 // Platform-specific main function handling
+#ifdef __EMSCRIPTEN__
+#define SDL_MAIN_HANDLED
+#endif
+
 #ifdef __APPLE__
 #define SDL_MAIN_HANDLED
 #endif
@@ -564,6 +568,12 @@ int SDL_main(int argc, char* argv[]) {
 }
 
 // Platform-specific wrapper main function
+#ifdef __EMSCRIPTEN__
+int main(int argc, char* argv[]) {
+    return SDL_main(argc, argv);
+}
+#endif
+
 #ifdef __APPLE__
 int main(int argc, char* argv[]) {
     return SDL_main(argc, argv);
