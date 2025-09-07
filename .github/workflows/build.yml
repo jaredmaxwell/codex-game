@@ -15,8 +15,9 @@ jobs:
     - name: Install MSYS2 and build
       run: |
         choco install msys2 -y
+        C:\msys64\usr\bin\bash -lc "pacman-key --init && pacman-key --populate msys2"
         C:\msys64\usr\bin\bash -lc "pacman -S --noconfirm --needed mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_ttf mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-make"
-        C:\msys64\usr\bin\bash -lc "export PATH=/mingw64/bin:$PATH && make"
+        C:\msys64\usr\bin\bash -lc "export PATH=/mingw64/bin:$PATH && /mingw64/bin/make"
         
     - name: Upload Windows build
       uses: actions/upload-artifact@v4
