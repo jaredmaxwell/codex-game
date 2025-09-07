@@ -113,7 +113,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: game-web
-        path: build-web/game.html
+        path: build-web/
 
   create-release:
     needs: [build-windows, build-macos, build-linux, build-web]
@@ -160,7 +160,7 @@ jobs:
           - **Windows**: `game.exe` - Run directly on Windows
           - **macOS**: `game-macos` - Run directly on macOS
           - **Linux**: `game-linux` - Run directly on Linux
-          - **Web**: `game.html` - Open in any modern web browser (works on mobile too!)
+          - **Web**: `game.html` + supporting files - Open in any modern web browser (works on mobile too!)
           
           ### Controls:
           - **Desktop**: WASD to move, J to attack, ESC to quit
@@ -175,7 +175,7 @@ jobs:
           ./releases/windows/game.exe
           ./releases/macos/game-macos
           ./releases/linux/game-linux
-          ./releases/web/game.html
+          ./releases/web/*
         draft: false
         prerelease: false
       env:

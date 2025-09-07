@@ -4,24 +4,33 @@ project(codex_game)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find SDL2 packages
-find_package(SDL2 CONFIG REQUIRED)
-find_package(SDL2_ttf CONFIG REQUIRED)
-find_package(SDL2_image CONFIG REQUIRED)
+# Find SDL2 packages (skip for Emscripten as it has built-in SDL2)
+if(NOT EMSCRIPTEN)
+    find_package(SDL2 CONFIG REQUIRED)
+    find_package(SDL2_ttf CONFIG REQUIRED)
+    find_package(SDL2_image CONFIG REQUIRED)
+endif()
 
 # Create executable
 add_executable(game src/main.cpp)
 
 # Link libraries - SDL2main must be linked first
-target_link_libraries(game 
-    SDL2::SDL2main 
-    SDL2::SDL2 
-    SDL2_ttf::SDL2_ttf 
-    SDL2_image::SDL2_image
-)
+if(EMSCRIPTEN)
+    # Emscripten handles SDL2 linking automatically via emcc flags
+    target_link_libraries(game)
+else()
+    target_link_libraries(game 
+        SDL2::SDL2main 
+        SDL2::SDL2 
+        SDL2_ttf::SDL2_ttf 
+        SDL2_image::SDL2_image
+    )
+endif()
 
-# Copy assets to build directory
-file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
+# Copy assets to build directory (skip for Emscripten as it's handled later)
+if(NOT EMSCRIPTEN)
+    file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
+endif()
 
 # Platform-specific settings
 if(WIN32)
