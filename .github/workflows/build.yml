@@ -127,6 +127,12 @@ jobs:
       with:
         name: game-web
         path: build-web/game-web.zip
+    
+    - name: Upload WebAssembly for Pages
+      uses: actions/upload-artifact@v4
+      with:
+        name: game-web-pages
+        path: build-web/
 
   create-release:
     needs: [build-windows, build-macos, build-linux, build-web]
