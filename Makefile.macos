@@ -1,7 +1,7 @@
 # macOS Makefile
 CXX = clang++
-CXXFLAGS = -std=c++17 -I/opt/homebrew/include/SDL2 -I/usr/local/include/SDL2
-LDFLAGS = -L/opt/homebrew/lib -L/usr/local/lib -lSDL2 -lSDL2_ttf -lSDL2_image -framework Cocoa
+CXXFLAGS = -std=c++17 $(shell pkg-config --cflags sdl2 SDL2_ttf SDL2_image)
+LDFLAGS = $(shell pkg-config --libs sdl2 SDL2_ttf SDL2_image) -framework Cocoa
 SRC = src/main.cpp
 
 all: game

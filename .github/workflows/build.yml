@@ -37,7 +37,7 @@ jobs:
     
     - name: Install SDL2 dependencies
       run: |
-        brew install sdl2 sdl2_ttf sdl2_image
+        brew install sdl2 sdl2_ttf sdl2_image pkg-config
         
     - name: Build for macOS
       run: |
