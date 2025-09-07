@@ -12,15 +12,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Install vcpkg and dependencies
+    - name: Build with Visual Studio and vcpkg
       run: |
+        # Install vcpkg
         git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
         C:\vcpkg\bootstrap-vcpkg.bat
+        
+        # Install SDL2 dependencies
         C:\vcpkg\vcpkg.exe install sdl2:x64-windows sdl2-ttf:x64-windows sdl2-image:x64-windows
-    
-    - name: Build with Visual Studio
-      run: |
-        cl /std:c++17 /I"C:\vcpkg\installed\x64-windows\include" src\main.cpp /link "C:\vcpkg\installed\x64-windows\lib\SDL2.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2main.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_ttf.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_image.lib" /out:game.exe
+        
+        # Find Visual Studio and build
+        for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set VS_PATH=%%i
+        call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat" && cl /std:c++17 /I"C:\vcpkg\installed\x64-windows\include" src\main.cpp /link "C:\vcpkg\installed\x64-windows\lib\SDL2.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2main.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_ttf.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_image.lib" /out:game.exe
         
     - name: Upload Windows build
       uses: actions/upload-artifact@v4
