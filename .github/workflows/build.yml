@@ -41,7 +41,7 @@ jobs:
     
     - name: Install SDL2 dependencies
       run: |
-        brew install sdl2 sdl2_ttf sdl2_image pkg-config
+        brew install sdl2 sdl2_ttf sdl2_image
         
     - name: Debug SDL2 paths
       run: |
