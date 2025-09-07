@@ -1,0 +1,15 @@
+# macOS Makefile
+CXX = clang++
+CXXFLAGS = -std=c++17 -I/opt/homebrew/include/SDL2 -I/usr/local/include/SDL2
+LDFLAGS = -L/opt/homebrew/lib -L/usr/local/lib -lSDL2 -lSDL2_ttf -lSDL2_image -framework Cocoa
+SRC = src/main.cpp
+
+all: game
+
+game: $(SRC)
+	$(CXX) $(CXXFLAGS) -o $@ $(SRC) $(LDFLAGS)
+
+clean:
+	rm -f game
+
+.PHONY: all clean

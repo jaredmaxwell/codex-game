@@ -1,0 +1,15 @@
+# Linux Makefile
+CXX = g++
+CXXFLAGS = -std=c++17 $(shell pkg-config --cflags sdl2 SDL2_ttf SDL2_image)
+LDFLAGS = $(shell pkg-config --libs sdl2 SDL2_ttf SDL2_image)
+SRC = src/main.cpp
+
+all: game
+
+game: $(SRC)
+	$(CXX) $(CXXFLAGS) -o $@ $(SRC) $(LDFLAGS)
+
+clean:
+	rm -f game
+
+.PHONY: all clean

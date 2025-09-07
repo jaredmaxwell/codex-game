@@ -1,0 +1,70 @@
+name: Build Game
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install MSYS2
+      run: |
+        choco install msys2 -y
+        
+    - name: Install SDL2 dependencies
+      run: |
+        C:\msys64\usr\bin\bash -lc "pacman -S --noconfirm mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_ttf mingw-w64-x86_64-SDL2_image"
+        
+    - name: Build for Windows
+      run: |
+        C:\msys64\usr\bin\bash -lc "cd /c/Users/runneradmin/actions-runner/_work/codex-game/codex-game && make"
+        
+    - name: Upload Windows build
+      uses: actions/upload-artifact@v3
+      with:
+        name: game-windows
+        path: game.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install SDL2 dependencies
+      run: |
+        brew install sdl2 sdl2_ttf sdl2_image
+        
+    - name: Build for macOS
+      run: |
+        make
+        
+    - name: Upload macOS build
+      uses: actions/upload-artifact@v3
+      with:
+        name: game-macos
+        path: game
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install SDL2 dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev
+        
+    - name: Build for Linux
+      run: |
+        make
+        
+    - name: Upload Linux build
+      uses: actions/upload-artifact@v3
+      with:
+        name: game-linux
+        path: game
