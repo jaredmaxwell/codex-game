@@ -120,13 +120,19 @@ jobs:
     - name: Create WebAssembly zip
       run: |
         cd build-web
-        zip -r game-web.zip index.html game.js game.wasm assets/
+        zip -r game-web.zip index.html game.js game.wasm assets/ .nojekyll _headers
         
     - name: Upload WebAssembly build
       uses: actions/upload-artifact@v4
       with:
         name: game-web
         path: build-web/game-web.zip
+    
+    - name: Copy GitHub Pages config files
+      run: |
+        cd build-web
+        cp ../.nojekyll .
+        cp ../_headers .
     
     - name: Upload WebAssembly for Pages
       uses: actions/upload-artifact@v4

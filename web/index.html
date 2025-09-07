@@ -93,36 +93,34 @@
     {{{ SCRIPT }}}
     
     <script>
-        // WebGL context creation fix
-        function createWebGLContext(canvas) {
-            const contextAttributes = {
-                alpha: false,
-                antialias: false,
-                depth: true,
-                stencil: false,
-                preserveDrawingBuffer: false,
-                powerPreference: "default"
-            };
-            
-            let gl = null;
-            try {
-                gl = canvas.getContext('webgl2', contextAttributes) || 
-                     canvas.getContext('webgl', contextAttributes) || 
-                     canvas.getContext('experimental-webgl', contextAttributes);
-            } catch (e) {
-                console.error('WebGL context creation failed:', e);
-            }
-            
-            return gl;
-        }
+        // Modern WebGL context initialization (2024 best practices)
+        window.Module = window.Module || {};
         
-        // Override getContext to ensure proper WebGL context creation
-        const originalGetContext = HTMLCanvasElement.prototype.getContext;
-        HTMLCanvasElement.prototype.getContext = function(contextType, contextAttributes) {
-            if (contextType === 'webgl2' || contextType === 'webgl' || contextType === 'experimental-webgl') {
-                return createWebGLContext(this);
+        // Ensure proper WebGL context creation before Emscripten starts
+        window.Module.preRun = window.Module.preRun || [];
+        window.Module.preRun.push(function() {
+            const canvas = document.getElementById('canvas');
+            if (canvas) {
+                // Test WebGL support
+                const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (!gl) {
+                    console.error('WebGL not supported in this browser');
+                    document.getElementById('loading').innerHTML = 'WebGL not supported. Please use a modern browser.';
+                }
             }
-            return originalGetContext.call(this, contextType, contextAttributes);
+        });
+        
+        // Handle Emscripten runtime errors gracefully
+        window.Module.onRuntimeInitialized = function() {
+            console.log('Emscripten runtime initialized successfully');
+        };
+        
+        window.Module.print = function(text) {
+            console.log('Emscripten:', text);
+        };
+        
+        window.Module.printErr = function(text) {
+            console.error('Emscripten Error:', text);
         };
         
         // Hide loading text when game starts
