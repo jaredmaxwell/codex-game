@@ -22,7 +22,7 @@ jobs:
         
     - name: Build for Windows
       run: |
-        C:\msys64\msys2_shell.cmd -defterm -here -no-start -mingw64 -c "make"
+        C:\msys64\usr\bin\bash -lc "export PATH=/mingw64/bin:$PATH && make"
         
     - name: Upload Windows build
       uses: actions/upload-artifact@v4
