@@ -56,12 +56,13 @@ jobs:
     - name: Build for macOS
       run: |
         make -f Makefile.macos
+        mv game game-macos
         
     - name: Upload macOS build
       uses: actions/upload-artifact@v4
       with:
         name: game-macos
-        path: game
+        path: game-macos
 
   build-linux:
     runs-on: ubuntu-latest
@@ -76,12 +77,13 @@ jobs:
     - name: Build for Linux
       run: |
         make -f Makefile.linux
+        mv game game-linux
         
     - name: Upload Linux build
       uses: actions/upload-artifact@v4
       with:
         name: game-linux
-        path: game
+        path: game-linux
 
   create-release:
     needs: [build-windows, build-macos, build-linux]
@@ -135,8 +137,8 @@ jobs:
           - Cross-platform compatibility
         files: |
           ./releases/windows/game.exe
-          ./releases/macos/game
-          ./releases/linux/game
+          ./releases/macos/game-macos
+          ./releases/linux/game-linux
         draft: false
         prerelease: false
       env:
