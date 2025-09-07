@@ -52,7 +52,7 @@ elseif(EMSCRIPTEN)
     set_target_properties(game PROPERTIES
         SUFFIX ".html"
         COMPILE_FLAGS "-s USE_SDL=2 -s USE_SDL_TTF=2 -s USE_SDL_IMAGE=2"
-        LINK_FLAGS "-s USE_SDL=2 -s USE_SDL_TTF=2 -s USE_SDL_IMAGE=2 -s SDL2_IMAGE_FORMATS='[\"png\"]' -s EXPORTED_FUNCTIONS='[\"_main\"]' -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\"]' -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=64MB -s MAXIMUM_MEMORY=256MB -s DISABLE_EXCEPTION_CATCHING=0 --shell-file ${CMAKE_SOURCE_DIR}/web/index.html"
+        LINK_FLAGS "-s USE_SDL=2 -s USE_SDL_TTF=2 -s USE_SDL_IMAGE=2 -s SDL2_IMAGE_FORMATS='[\"png\"]' -s EXPORTED_FUNCTIONS='[\"_main\"]' -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\"]' -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=64MB -s MAXIMUM_MEMORY=256MB -s DISABLE_EXCEPTION_CATCHING=0 -s GL_PREINITIALIZED_CONTEXT=0 -s GL_UNSAFE_OFFSCREEN_FRAMEBUFFER=1 --shell-file ${CMAKE_SOURCE_DIR}/web/index.html"
     )
     
     # Rename game.html to index.html after build

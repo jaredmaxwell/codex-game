@@ -93,6 +93,38 @@
     {{{ SCRIPT }}}
     
     <script>
+        // WebGL context creation fix
+        function createWebGLContext(canvas) {
+            const contextAttributes = {
+                alpha: false,
+                antialias: false,
+                depth: true,
+                stencil: false,
+                preserveDrawingBuffer: false,
+                powerPreference: "default"
+            };
+            
+            let gl = null;
+            try {
+                gl = canvas.getContext('webgl2', contextAttributes) || 
+                     canvas.getContext('webgl', contextAttributes) || 
+                     canvas.getContext('experimental-webgl', contextAttributes);
+            } catch (e) {
+                console.error('WebGL context creation failed:', e);
+            }
+            
+            return gl;
+        }
+        
+        // Override getContext to ensure proper WebGL context creation
+        const originalGetContext = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function(contextType, contextAttributes) {
+            if (contextType === 'webgl2' || contextType === 'webgl' || contextType === 'experimental-webgl') {
+                return createWebGLContext(this);
+            }
+            return originalGetContext.call(this, contextType, contextAttributes);
+        };
+        
         // Hide loading text when game starts
         window.addEventListener('load', function() {
             setTimeout(function() {
