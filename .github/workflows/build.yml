@@ -12,12 +12,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Install MSYS2 and build
+    - name: Install vcpkg and dependencies
       run: |
-        choco install msys2 -y
-        C:\msys64\usr\bin\bash -lc "pacman-key --init && pacman-key --populate msys2"
-        C:\msys64\usr\bin\bash -lc "pacman -S --noconfirm --needed mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_ttf mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-make"
-        C:\msys64\usr\bin\bash -lc "export PATH=/mingw64/bin:$PATH && /mingw64/bin/make"
+        git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
+        C:\vcpkg\bootstrap-vcpkg.bat
+        C:\vcpkg\vcpkg.exe install sdl2:x64-windows sdl2-ttf:x64-windows sdl2-image:x64-windows
+    
+    - name: Build with Visual Studio
+      run: |
+        cl /std:c++17 /I"C:\vcpkg\installed\x64-windows\include" src\main.cpp /link "C:\vcpkg\installed\x64-windows\lib\SDL2.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2main.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_ttf.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_image.lib" /out:game.exe
         
     - name: Upload Windows build
       uses: actions/upload-artifact@v4
