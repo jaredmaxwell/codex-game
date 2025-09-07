@@ -134,6 +134,50 @@ jobs:
         name: game-web-pages
         path: build-web/
 
+  deploy-pages:
+    needs: [build-web]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+    - name: Download web build artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: game-web-pages
+        path: ./build-web
+    
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      with:
+        enablement: true
+    
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: build-web
+    
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+    
+    - name: Log deployment URL
+      run: |
+        echo "🚀 GitHub Pages deployment completed!"
+        echo "📍 Your game is now live at:"
+        echo "   https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+        echo ""
+        echo "🎮 Game features:"
+        echo "   • Cross-platform WebAssembly game"
+        echo "   • Works on desktop and mobile"
+        echo "   • No CORS issues - served over HTTPS"
+        echo ""
+        echo "📱 Controls:"
+        echo "   • Desktop: WASD to move, J to attack, ESC to quit"
+        echo "   • Mobile: Touch and drag to move, tap to attack"
+
   create-release:
     needs: [build-windows, build-macos, build-linux, build-web]
     runs-on: ubuntu-latest
