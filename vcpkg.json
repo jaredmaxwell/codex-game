@@ -7,7 +7,7 @@
     "sdl2-ttf",
     {
       "name": "sdl2-image",
-      "features": ["png"]
+      "default-features": false
     }
   ]
 }
