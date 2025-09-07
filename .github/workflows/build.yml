@@ -25,18 +25,22 @@ jobs:
         REM Install SDL2 dependencies
         C:\vcpkg\vcpkg.exe install sdl2:x64-windows sdl2-ttf:x64-windows sdl2-image:x64-windows
         
-        REM Debug: Show vcpkg include structure
-        echo "=== vcpkg include directory structure ==="
+        REM Debug: Show vcpkg structure
+        echo "=== vcpkg installed packages ==="
+        C:\vcpkg\vcpkg.exe list
+        echo "=== vcpkg include directory ==="
         dir "C:\vcpkg\installed\x64-windows\include" /s
         echo "=== Looking for SDL headers ==="
-        dir "C:\vcpkg\installed\x64-windows\include\SDL*" /s
+        dir "C:\vcpkg\installed\x64-windows\include\SDL*" /s 2>nul || echo "No SDL* directories found"
+        echo "=== Looking for SDL.h directly ==="
+        dir "C:\vcpkg\installed\x64-windows\include\SDL.h" /s 2>nul || echo "SDL.h not found in include root"
     
-    - name: Build with Visual Studio (Direct)
+    - name: Build with Visual Studio
       shell: cmd
       run: |
         REM Find Visual Studio and build
         for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set VS_PATH=%%i
-        call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat" && cl /std:c++17 /I"C:\vcpkg\installed\x64-windows\include" /I"C:\vcpkg\installed\x64-windows\include\SDL2" src\main.cpp /link "C:\vcpkg\installed\x64-windows\lib\SDL2.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2main.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_ttf.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_image.lib" /out:game.exe
+        call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat" && cl /std:c++17 /I"C:\vcpkg\installed\x64-windows\include" src\main.cpp /link "C:\vcpkg\installed\x64-windows\lib\SDL2.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2main.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_ttf.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_image.lib" /out:game.exe
         
     - name: Upload Windows build
       uses: actions/upload-artifact@v4

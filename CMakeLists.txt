@@ -9,6 +9,11 @@ find_package(SDL2 REQUIRED)
 find_package(SDL2_ttf REQUIRED)
 find_package(SDL2_image REQUIRED)
 
+# Debug: Print SDL2 information
+message(STATUS "SDL2_FOUND: ${SDL2_FOUND}")
+message(STATUS "SDL2_INCLUDE_DIRS: ${SDL2_INCLUDE_DIRS}")
+message(STATUS "SDL2_LIBRARIES: ${SDL2_LIBRARIES}")
+
 # Create executable
 add_executable(game src/main.cpp)
 
