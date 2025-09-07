@@ -59,11 +59,15 @@ jobs:
         mv game game-macos
         chmod +x game-macos
         
+    - name: Create macOS zip
+      run: |
+        zip game-macos.zip game-macos
+        
     - name: Upload macOS build
       uses: actions/upload-artifact@v4
       with:
         name: game-macos
-        path: game-macos
+        path: game-macos.zip
 
   build-linux:
     runs-on: ubuntu-latest
@@ -81,11 +85,15 @@ jobs:
         mv game game-linux
         chmod +x game-linux
         
+    - name: Create Linux zip
+      run: |
+        zip game-linux.zip game-linux
+        
     - name: Upload Linux build
       uses: actions/upload-artifact@v4
       with:
         name: game-linux
-        path: game-linux
+        path: game-linux.zip
 
   build-web:
     runs-on: ubuntu-latest
@@ -109,11 +117,16 @@ jobs:
         emcmake cmake .. -DCMAKE_BUILD_TYPE=Release
         emmake make -j$(nproc)
         
+    - name: Create WebAssembly zip
+      run: |
+        cd build-web
+        zip -r game-web.zip game.html game.js game.wasm assets/
+        
     - name: Upload WebAssembly build
       uses: actions/upload-artifact@v4
       with:
         name: game-web
-        path: build-web/
+        path: build-web/game-web.zip
 
   create-release:
     needs: [build-windows, build-macos, build-linux, build-web]
@@ -158,9 +171,9 @@ jobs:
           
           ### Downloads:
           - **Windows**: `game.exe` - Run directly on Windows
-          - **macOS**: `game-macos` - Run directly on macOS
-          - **Linux**: `game-linux` - Run directly on Linux
-          - **Web**: `game.html` + supporting files - Open in any modern web browser (works on mobile too!)
+          - **macOS**: `game-macos.zip` - Extract and run `./game-macos`
+          - **Linux**: `game-linux.zip` - Extract and run `./game-linux`
+          - **Web**: `game-web.zip` - Extract and open game.html in any modern web browser (works on mobile too!)
           
           ### Controls:
           - **Desktop**: WASD to move, J to attack, ESC to quit
@@ -173,9 +186,9 @@ jobs:
           - Cross-platform compatibility (Desktop + Web)
         files: |
           ./releases/windows/game.exe
-          ./releases/macos/game-macos
-          ./releases/linux/game-linux
-          ./releases/web/*
+          ./releases/macos/game-macos.zip
+          ./releases/linux/game-linux.zip
+          ./releases/web/game-web.zip
         draft: false
         prerelease: false
       env:
