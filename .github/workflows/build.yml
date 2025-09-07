@@ -18,7 +18,7 @@ jobs:
         
     - name: Install SDL2 dependencies
       run: |
-        C:\msys64\usr\bin\bash -lc "pacman -S --noconfirm mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_ttf mingw-w64-x86_64-SDL2_image"
+        C:\msys64\usr\bin\bash -lc "pacman -S --noconfirm mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_ttf mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-make"
         
     - name: Build for Windows
       run: |
@@ -68,3 +68,60 @@ jobs:
       with:
         name: game-linux
         path: game
+
+  create-release:
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+    - name: Download Windows build
+      uses: actions/download-artifact@v4
+      with:
+        name: game-windows
+        path: ./releases/windows/
+        
+    - name: Download macOS build
+      uses: actions/download-artifact@v4
+      with:
+        name: game-macos
+        path: ./releases/macos/
+        
+    - name: Download Linux build
+      uses: actions/download-artifact@v4
+      with:
+        name: game-linux
+        path: ./releases/linux/
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.run_number }}
+        name: Codex Game v${{ github.run_number }}
+        body: |
+          ## Codex Game Release v${{ github.run_number }}
+          
+          Cross-platform builds for Windows, macOS, and Linux.
+          
+          ### Downloads:
+          - **Windows**: `game.exe` - Run directly on Windows
+          - **macOS**: `game` - Run directly on macOS
+          - **Linux**: `game` - Run directly on Linux
+          
+          ### Controls:
+          - **WASD**: Move player
+          - **Space**: Attack
+          - **ESC**: Quit
+          
+          ### Game Features:
+          - Dynamic enemy spawning and leveling
+          - Shard collection system
+          - Magnet power-ups
+          - Cross-platform compatibility
+        files: |
+          ./releases/windows/game.exe
+          ./releases/macos/game
+          ./releases/linux/game
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
