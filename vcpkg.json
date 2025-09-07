@@ -1,0 +1,10 @@
+{
+  "name": "codex-game",
+  "version": "1.0.0",
+  "description": "A cross-platform SDL2 game",
+  "dependencies": [
+    "sdl2",
+    "sdl2-ttf",
+    "sdl2-image"
+  ]
+}

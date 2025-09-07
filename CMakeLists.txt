@@ -5,19 +5,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find SDL2 packages
-find_package(SDL2 REQUIRED)
-find_package(SDL2_ttf REQUIRED)
-find_package(SDL2_image REQUIRED)
-
-# Debug: Print SDL2 information
-message(STATUS "SDL2_FOUND: ${SDL2_FOUND}")
-message(STATUS "SDL2_INCLUDE_DIRS: ${SDL2_INCLUDE_DIRS}")
-message(STATUS "SDL2_LIBRARIES: ${SDL2_LIBRARIES}")
+find_package(SDL2 CONFIG REQUIRED)
+find_package(SDL2_ttf CONFIG REQUIRED)
+find_package(SDL2_image CONFIG REQUIRED)
 
 # Create executable
 add_executable(game src/main.cpp)
 
-# Link libraries
+# Link libraries - SDL2main must be linked first
 target_link_libraries(game 
     SDL2::SDL2main 
     SDL2::SDL2 
