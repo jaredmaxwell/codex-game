@@ -1,8 +1,9 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches: [ main, master ]
+  workflow_run:
+    workflows: ["Build Game"]
+    types: [completed]
   workflow_dispatch: # Allow manual triggering
 
 permissions:
@@ -15,30 +16,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  deploy-to-pages:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+    - name: Download web build artifact
+      uses: actions/download-artifact@v4
       with:
-        submodules: 'recursive'
-    
-    - name: Setup Emscripten
-      run: |
-        git clone https://github.com/emscripten-core/emsdk.git
-        cd emsdk
-        ./emsdk install latest
-        ./emsdk activate latest
-        echo "EMSDK_PATH=$PWD" >> $GITHUB_ENV
-        echo "$PWD" >> $GITHUB_PATH
-    
-    - name: Build for WebAssembly
-      run: |
-        source $EMSDK_PATH/emsdk_env.sh
-        mkdir build-web
-        cd build-web
-        emcmake cmake .. -DCMAKE_BUILD_TYPE=Release
-        emmake make -j$(nproc)
+        name: game-web-pages
+        path: ./build-web
     
     - name: Setup Pages
       uses: actions/configure-pages@v4
@@ -53,3 +39,18 @@ jobs:
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
+    
+    - name: Log deployment URL
+      run: |
+        echo "🚀 GitHub Pages deployment completed!"
+        echo "📍 Your game is now live at:"
+        echo "   https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+        echo ""
+        echo "🎮 Game features:"
+        echo "   • Cross-platform WebAssembly game"
+        echo "   • Works on desktop and mobile"
+        echo "   • No CORS issues - served over HTTPS"
+        echo ""
+        echo "📱 Controls:"
+        echo "   • Desktop: WASD to move, J to attack, ESC to quit"
+        echo "   • Mobile: Touch and drag to move, tap to attack"
