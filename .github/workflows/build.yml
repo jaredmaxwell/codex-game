@@ -42,13 +42,33 @@ jobs:
     - name: Install SDL2 dependencies
       run: |
         # Install SDL2 and basic dependencies
-        brew install sdl2 libpng cmake
+        brew install sdl2 libpng
         # Install zlib for PNG support
         brew install zlib
+        # Handle cmake installation (may be from different tap)
+        if ! command -v cmake >/dev/null 2>&1; then
+          echo "Installing cmake..."
+          brew install cmake
+        else
+          echo "cmake already available, checking version..."
+          cmake --version
+        fi
+        # If cmake installation fails due to tap conflict, try to resolve it
+        if ! command -v cmake >/dev/null 2>&1; then
+          echo "cmake not available, attempting to resolve tap conflict..."
+          brew uninstall cmake 2>/dev/null || true
+          brew install cmake
+        fi
         
     - name: Build SDL2_image with PNG support only
       run: |
         echo "Building SDL2_image from source with PNG support only..."
+        # Verify cmake is available
+        if ! command -v cmake >/dev/null 2>&1; then
+          echo "Error: cmake is not available. Cannot build SDL2_image."
+          exit 1
+        fi
+        echo "cmake version: $(cmake --version | head -n1)"
         # Create custom installation directory
         export SDL2_IMAGE_PREFIX=/opt/sdl2_image_png
         sudo mkdir -p $SDL2_IMAGE_PREFIX
