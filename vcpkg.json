@@ -4,7 +4,6 @@
   "description": "A cross-platform SDL2 game",
   "dependencies": [
     "sdl2",
-    "sdl2-ttf",
     {
       "name": "sdl2-image",
       "default-features": false

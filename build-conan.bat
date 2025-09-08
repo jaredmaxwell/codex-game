@@ -20,7 +20,6 @@ if not exist "conanfile.txt" (
     echo Creating conanfile.txt...
     echo [requires] > conanfile.txt
     echo sdl/2.28.5 >> conanfile.txt
-    echo sdl_ttf/2.22.0 >> conanfile.txt
     echo sdl_image/2.8.2 >> conanfile.txt
     echo. >> conanfile.txt
     echo [generators] >> conanfile.txt
@@ -41,12 +40,11 @@ if not exist "CMakeLists.txt" (
     echo set(CMAKE_CXX_STANDARD 17) >> CMakeLists.txt
     echo. >> CMakeLists.txt
     echo find_package(SDL2 REQUIRED) >> CMakeLists.txt
-    echo find_package(SDL2_ttf REQUIRED) >> CMakeLists.txt
     echo find_package(SDL2_image REQUIRED) >> CMakeLists.txt
     echo. >> CMakeLists.txt
-    echo add_executable(game src/main.cpp) >> CMakeLists.txt
+    echo add_executable(game src/main.cpp src/bitmap_font.cpp) >> CMakeLists.txt
     echo. >> CMakeLists.txt
-    echo target_link_libraries(game SDL2::SDL2main SDL2::SDL2 SDL2_ttf::SDL2_ttf SDL2_image::SDL2_image) >> CMakeLists.txt
+    echo target_link_libraries(game SDL2::SDL2main SDL2::SDL2 SDL2_image::SDL2_image) >> CMakeLists.txt
 )
 
 REM Build with CMake

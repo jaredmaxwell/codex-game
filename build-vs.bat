@@ -13,11 +13,11 @@ if not exist "C:\vcpkg\vcpkg.exe" (
 
 REM Install SDL2 dependencies via vcpkg
 echo Installing SDL2 dependencies...
-C:\vcpkg\vcpkg.exe install sdl2:x64-windows sdl2-ttf:x64-windows sdl2-image:x64-windows
+C:\vcpkg\vcpkg.exe install sdl2:x64-windows sdl2-image:x64-windows
 
 REM Build with Visual Studio
 echo Building with Visual Studio...
-cl /std:c++17 /I"C:\vcpkg\installed\x64-windows\include" src\main.cpp /link "C:\vcpkg\installed\x64-windows\lib\SDL2.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2main.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_ttf.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_image.lib" /out:game.exe
+cl /std:c++17 /I"C:\vcpkg\installed\x64-windows\include" src\main.cpp src\bitmap_font.cpp /link "C:\vcpkg\installed\x64-windows\lib\SDL2.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2main.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_image.lib" /out:game.exe
 
 if %ERRORLEVEL% EQU 0 (
     echo Build successful!

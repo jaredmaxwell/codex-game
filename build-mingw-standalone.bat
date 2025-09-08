@@ -26,7 +26,7 @@ set PATH=%MINGW_PATH%\bin;%PATH%
 
 REM Build the game
 echo Building...
-g++ -std=c++17 -I"%SDL2_PATH%\include" -I"%SDL2_PATH%\include\SDL2" src\main.cpp -L"%SDL2_PATH%\lib\x64" -lSDL2main -lSDL2 -lSDL2_ttf -lSDL2_image -o game.exe
+g++ -std=c++17 -I"%SDL2_PATH%\include" -I"%SDL2_PATH%\include\SDL2" src\main.cpp src\bitmap_font.cpp -L"%SDL2_PATH%\lib\x64" -lSDL2main -lSDL2 -lSDL2_image -o game.exe
 
 if %ERRORLEVEL% EQU 0 (
     echo Build successful!

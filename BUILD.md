@@ -8,7 +8,7 @@ This document provides instructions for building the game on different platforms
 ```bash
 # Install MSYS2 from https://www.msys2.org/
 # Then install SDL2 dependencies:
-pacman -S mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_ttf mingw-w64-x86_64-SDL2_image
+pacman -S mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_image
 ```
 
 ### macOS
@@ -17,18 +17,18 @@ pacman -S mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_ttf mingw-w64-x86_64-SDL2_
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install SDL2 dependencies
-brew install sdl2 sdl2_ttf sdl2_image
+brew install sdl2 sdl2_image
 ```
 
 ### Linux (Ubuntu/Debian)
 ```bash
 sudo apt-get update
-sudo apt-get install libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev
+sudo apt-get install libsdl2-dev libsdl2-image-dev
 ```
 
 ### Linux (Fedora/CentOS)
 ```bash
-sudo dnf install SDL2-devel SDL2_ttf-devel SDL2_image-devel
+sudo dnf install SDL2-devel SDL2_image-devel
 ```
 
 ## Building

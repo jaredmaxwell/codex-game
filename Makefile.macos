@@ -2,8 +2,8 @@
 CXX = clang++
 HOMEBREW_PREFIX = $(shell brew --prefix)
 CXXFLAGS = -std=c++17 -I$(HOMEBREW_PREFIX)/include/SDL2 -I$(HOMEBREW_PREFIX)/include
-LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lSDL2 -lSDL2_ttf -lSDL2_image -framework Cocoa
-SRC = src/main.cpp
+LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lSDL2 -lSDL2_image -framework Cocoa
+SRC = src/main.cpp src/bitmap_font.cpp
 
 all: game
 

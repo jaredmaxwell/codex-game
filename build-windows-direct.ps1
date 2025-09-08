@@ -24,12 +24,12 @@ if (Test-Path $vsWhere) {
             
             # Install SDL2 dependencies
             Write-Host "Installing SDL2 dependencies..." -ForegroundColor Yellow
-            & "C:\vcpkg\vcpkg.exe" install sdl2:x64-windows sdl2-ttf:x64-windows sdl2-image:x64-windows
+            & "C:\vcpkg\vcpkg.exe" install sdl2:x64-windows sdl2-image:x64-windows
             
             # Build the game
             Write-Host "Building game..." -ForegroundColor Yellow
             $buildCommand = @"
-call "$vcvarsPath" && cl /std:c++17 /I"C:\vcpkg\installed\x64-windows\include" src\main.cpp /link "C:\vcpkg\installed\x64-windows\lib\SDL2.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2main.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_ttf.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_image.lib" /out:game.exe
+call "$vcvarsPath" && cl /std:c++17 /I"C:\vcpkg\installed\x64-windows\include" src\main.cpp src\bitmap_font.cpp /link "C:\vcpkg\installed\x64-windows\lib\SDL2.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2main.lib" "C:\vcpkg\installed\x64-windows\lib\SDL2_image.lib" /out:game.exe
 "@
             
             cmd /c $buildCommand

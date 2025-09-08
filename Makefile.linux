@@ -1,8 +1,8 @@
 # Linux Makefile
 CXX = g++
-CXXFLAGS = -std=c++17 $(shell pkg-config --cflags sdl2 SDL2_ttf SDL2_image)
-LDFLAGS = $(shell pkg-config --libs sdl2 SDL2_ttf SDL2_image)
-SRC = src/main.cpp
+CXXFLAGS = -std=c++17 $(shell pkg-config --cflags sdl2 SDL2_image)
+LDFLAGS = $(shell pkg-config --libs sdl2 SDL2_image)
+SRC = src/main.cpp src/bitmap_font.cpp
 
 all: game
 
