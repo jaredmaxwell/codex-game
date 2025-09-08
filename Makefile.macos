@@ -17,17 +17,25 @@ else
 endif
 # PNG support library
 IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libpng.a
-# Compression library for PNG
-ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libz.a),)
-    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libz.a
-else ifneq ($(wildcard /usr/lib/libz.a),)
-    IMAGE_LIBS += /usr/lib/libz.a
+# Compression library for PNG (keg-only package)
+ifdef ZLIB_LIB
+    # Use environment variable if set (from GitHub Actions)
+    ifneq ($(wildcard $(ZLIB_LIB)/libz.a),)
+        IMAGE_LIBS += $(ZLIB_LIB)/libz.a
+    else
+        $(warning libz.a not found at $(ZLIB_LIB)/libz.a)
+    endif
 else
-    # Try to find libz.a in other common locations
-    ifneq ($(wildcard /usr/local/lib/libz.a),)
+    # Fallback to standard locations
+    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libz.a),)
+        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libz.a
+    else ifneq ($(wildcard /usr/lib/libz.a),)
+        IMAGE_LIBS += /usr/lib/libz.a
+    else ifneq ($(wildcard /usr/local/lib/libz.a),)
         IMAGE_LIBS += /usr/local/lib/libz.a
     else
         $(warning libz.a not found - PNG compression may not work properly)
+        $(warning Continuing without libz.a - this may cause linking errors)
     endif
 endif
 LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -L/usr/local/lib -L/opt/homebrew/lib $(IMAGE_LIBS) -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -framework CoreAudio -framework AudioToolbox -framework CoreHaptics -framework GameController -framework CoreServices -framework Metal -framework Foundation -framework QuartzCore -framework ForceFeedback -framework Carbon -framework ImageIO -framework CoreGraphics -framework ApplicationServices -framework Security -framework SystemConfiguration -framework AppKit

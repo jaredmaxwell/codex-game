@@ -45,8 +45,19 @@ jobs:
         brew install sdl2 libpng
         # Install zlib for PNG support
         brew install zlib
-        # Force reinstall zlib to ensure static library is available
-        brew reinstall zlib
+        # Check for libz.a in the correct keg-only location
+        echo "Checking for libz.a in keg-only location:"
+        if [ -f "$(brew --prefix zlib)/lib/libz.a" ]; then
+          echo "✓ Found libz.a at $(brew --prefix zlib)/lib/libz.a"
+        else
+          echo "✗ libz.a not found at $(brew --prefix zlib)/lib/"
+          echo "Contents of $(brew --prefix zlib)/lib/:"
+          ls -la "$(brew --prefix zlib)/lib/" || echo "Directory does not exist"
+        fi
+        # Set environment variables for zlib (keg-only package)
+        echo "ZLIB_PREFIX=$(brew --prefix zlib)" >> $GITHUB_ENV
+        echo "ZLIB_LIB=$(brew --prefix zlib)/lib" >> $GITHUB_ENV
+        echo "ZLIB_INCLUDE=$(brew --prefix zlib)/include" >> $GITHUB_ENV
         # Handle cmake installation (may be from different tap)
         if ! command -v cmake >/dev/null 2>&1; then
           echo "Installing cmake..."
@@ -148,7 +159,15 @@ jobs:
         # Set environment variables for the build
         echo "SDL2_IMAGE_PREFIX=$SDL2_IMAGE_PREFIX" >> $GITHUB_ENV
         echo "SDL2_IMAGE_LIB=$SDL2_IMAGE_PREFIX/lib" >> $GITHUB_ENV
-        echo "SDL2_IMAGE_INCLUDE=$SDL2_IMAGE_PREFIX/include/SDL2" >> $GITHUB_ENV
+        # Find the actual include directory
+        SDL2_IMAGE_INCLUDE_DIR=$(find $SDL2_IMAGE_PREFIX -name "SDL_image.h" -type f 2>/dev/null | head -1 | xargs dirname)
+        if [ -n "$SDL2_IMAGE_INCLUDE_DIR" ]; then
+          echo "SDL2_IMAGE_INCLUDE=$SDL2_IMAGE_INCLUDE_DIR" >> $GITHUB_ENV
+          echo "Found SDL_image.h at: $SDL2_IMAGE_INCLUDE_DIR"
+        else
+          echo "SDL2_IMAGE_INCLUDE=$SDL2_IMAGE_PREFIX/include/SDL2" >> $GITHUB_ENV
+          echo "Using default include path: $SDL2_IMAGE_PREFIX/include/SDL2"
+        fi
         
         echo "SDL2_image built with PNG support only to $SDL2_IMAGE_PREFIX"
         
@@ -161,21 +180,26 @@ jobs:
         echo "Checking for static libraries:"
         ls -la $(brew --prefix)/lib/libSDL2* || echo "No SDL2 libraries found"
         echo "Checking for PNG support libraries:"
-        for lib in libpng.a libz.a; do
-          if [ -f "$(brew --prefix)/lib/$lib" ]; then
-            echo "  ✓ $lib found at $(brew --prefix)/lib/$lib"
+        # Check libpng.a
+        if [ -f "$(brew --prefix)/lib/libpng.a" ]; then
+          echo "  ✓ libpng.a found at $(brew --prefix)/lib/libpng.a"
+        else
+          echo "  ✗ libpng.a missing from $(brew --prefix)/lib/"
+        fi
+        # Check libz.a in keg-only location
+        if [ -f "$(brew --prefix zlib)/lib/libz.a" ]; then
+          echo "  ✓ libz.a found at $(brew --prefix zlib)/lib/libz.a"
+        else
+          echo "  ✗ libz.a missing from $(brew --prefix zlib)/lib/"
+          echo "    → Checking alternative locations..."
+          if [ -f "/usr/lib/libz.a" ]; then
+            echo "    → Found at /usr/lib/libz.a"
+          elif [ -f "/usr/local/lib/libz.a" ]; then
+            echo "    → Found at /usr/local/lib/libz.a"
           else
-            echo "  ✗ $lib missing from $(brew --prefix)/lib/"
-            # Check alternative locations
-            if [ -f "/usr/lib/$lib" ]; then
-              echo "    → Found at /usr/lib/$lib"
-            elif [ -f "/usr/local/lib/$lib" ]; then
-              echo "    → Found at /usr/local/lib/$lib"
-            else
-              echo "    → Not found anywhere"
-            fi
+            echo "    → Not found anywhere"
           fi
-        done
+        fi
         echo "All .a files in Homebrew lib directory:"
         find $(brew --prefix)/lib -name "*.a" 2>/dev/null | grep -E "(png|z\.a)" || echo "No matching .a files found"
         echo "Checking Homebrew SDL2_image installation:"
