@@ -45,6 +45,8 @@ jobs:
         brew install sdl2 libpng
         # Install zlib for PNG support
         brew install zlib
+        # Force reinstall zlib to ensure static library is available
+        brew reinstall zlib
         # Handle cmake installation (may be from different tap)
         if ! command -v cmake >/dev/null 2>&1; then
           echo "Installing cmake..."
@@ -137,6 +139,12 @@ jobs:
           exit 1
         fi
         
+        # Check for header files
+        echo "Checking for SDL_image.h header file:"
+        find $SDL2_IMAGE_PREFIX -name "SDL_image.h" 2>/dev/null || echo "SDL_image.h not found"
+        echo "Contents of $SDL2_IMAGE_PREFIX/include/:"
+        find $SDL2_IMAGE_PREFIX/include -type f 2>/dev/null || echo "No include files found"
+        
         # Set environment variables for the build
         echo "SDL2_IMAGE_PREFIX=$SDL2_IMAGE_PREFIX" >> $GITHUB_ENV
         echo "SDL2_IMAGE_LIB=$SDL2_IMAGE_PREFIX/lib" >> $GITHUB_ENV
@@ -163,9 +171,13 @@ jobs:
               echo "    → Found at /usr/lib/$lib"
             elif [ -f "/usr/local/lib/$lib" ]; then
               echo "    → Found at /usr/local/lib/$lib"
+            else
+              echo "    → Not found anywhere"
             fi
           fi
         done
+        echo "All .a files in Homebrew lib directory:"
+        find $(brew --prefix)/lib -name "*.a" 2>/dev/null | grep -E "(png|z\.a)" || echo "No matching .a files found"
         echo "Checking Homebrew SDL2_image installation:"
         ls -la $(brew --prefix)/lib/libSDL2_image* || echo "No Homebrew SDL2_image libraries found"
         echo "Checking custom SDL2_image installation:"
