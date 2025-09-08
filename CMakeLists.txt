@@ -11,7 +11,7 @@ if(NOT EMSCRIPTEN)
 endif()
 
 # Create executable
-add_executable(game src/main.cpp src/bitmap_font.cpp src/game.cpp)
+add_executable(game src/main.cpp src/bitmap_font.cpp src/game.cpp src/player.cpp)
 
 # Link libraries - SDL2main must be linked first
 if(EMSCRIPTEN)

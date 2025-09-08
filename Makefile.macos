@@ -2,7 +2,7 @@
 CXX = clang++
 HOMEBREW_PREFIX = $(shell brew --prefix)
 CXXFLAGS = -std=c++17 -I$(HOMEBREW_PREFIX)/include/SDL2 -I$(HOMEBREW_PREFIX)/include
-SRC = src/main.cpp src/bitmap_font.cpp src/game.cpp
+SRC = src/main.cpp src/bitmap_font.cpp src/game.cpp src/player.cpp
 
 # Static linking only - embeds SDL2 into the executable for distribution
 # PNG-only build - much simpler and more reliable

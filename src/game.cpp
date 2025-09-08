@@ -1,5 +1,6 @@
 #include "game.h"
 #include "bitmap_font.h"
+#include "player.h"
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
@@ -17,9 +18,6 @@
 // Game constants
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
-const int PLAYER_SIZE = 16;
-const int PLAYER_SPEED = 5;
-const int ATTACK_DURATION = 200; // milliseconds
 const int ENEMY_BASE_SIZE = 12;
 const float ENEMY_SPEED = 1.5f;
 const int MAX_ENEMIES = 20;
@@ -34,18 +32,6 @@ const int MAX_MAGNETS = 5;
 const int MAGNET_LIFETIME = 15000; // milliseconds
 const int MAGNET_DROP_CHANCE = 1; // 1 in 100 chance
 
-enum Direction { UP, DOWN, LEFT, RIGHT };
-
-struct Player {
-    int x, y;
-    Direction dir;
-};
-
-struct Attack {
-    bool active;
-    SDL_Rect rect;
-    Uint32 startTime;
-};
 
 struct Enemy {
     int x, y;
@@ -75,8 +61,7 @@ struct Magnet {
 static BitmapFont* g_font = nullptr;
 static SDL_Texture* g_playerTexture = nullptr;
 static SDL_Texture* g_enemyTextures[MAX_ENEMY_LEVEL + 1] = {nullptr};
-static Player g_player{0, 0, DOWN};
-static Attack g_attack{false, {0, 0, PLAYER_SIZE, PLAYER_SIZE}, 0};
+static Player g_player;
 static Enemy g_enemies[MAX_ENEMIES];
 static Shard g_shards[MAX_SHARDS];
 static Magnet g_magnets[MAX_MAGNETS];
@@ -183,8 +168,7 @@ bool GameScene::initialize(SDL_Renderer* renderer) {
     }
 
     // Initialize game state
-    g_player = {SCREEN_WIDTH / 2 - PLAYER_SIZE / 2, SCREEN_HEIGHT / 2 - PLAYER_SIZE / 2, DOWN};
-    g_attack = {false, {0, 0, PLAYER_SIZE, PLAYER_SIZE}, 0};
+    g_player.initialize(SCREEN_WIDTH / 2 - Player::PLAYER_SIZE / 2, SCREEN_HEIGHT / 2 - Player::PLAYER_SIZE / 2);
     
     // Initialize enemies array
     for (int i = 0; i < MAX_ENEMIES; i++) {
@@ -218,22 +202,7 @@ void GameScene::handleEvent(const SDL_Event& event) {
                 m_quit = true;
                 break;
             case SDLK_j:
-                g_attack.active = true;
-                g_attack.startTime = SDL_GetTicks();
-                switch (g_player.dir) {
-                    case UP:
-                        g_attack.rect = {g_player.x, g_player.y - PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE};
-                        break;
-                    case DOWN:
-                        g_attack.rect = {g_player.x, g_player.y + PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE};
-                        break;
-                    case LEFT:
-                        g_attack.rect = {g_player.x - PLAYER_SIZE, g_player.y, PLAYER_SIZE, PLAYER_SIZE};
-                        break;
-                    case RIGHT:
-                        g_attack.rect = {g_player.x + PLAYER_SIZE, g_player.y, PLAYER_SIZE, PLAYER_SIZE};
-                        break;
-                }
+                g_player.handleAttack();
                 break;
         }
     }
@@ -242,39 +211,8 @@ void GameScene::handleEvent(const SDL_Event& event) {
 void GameScene::update() {
     // Handle continuous movement with keyboard state
     const Uint8* keystate = SDL_GetKeyboardState(NULL);
-    float moveX = 0, moveY = 0;
-    
-    if (keystate[SDL_SCANCODE_W]) {
-        moveY -= 1;
-        g_player.dir = UP;
-    }
-    if (keystate[SDL_SCANCODE_S]) {
-        moveY += 1;
-        g_player.dir = DOWN;
-    }
-    if (keystate[SDL_SCANCODE_A]) {
-        moveX -= 1;
-        g_player.dir = LEFT;
-    }
-    if (keystate[SDL_SCANCODE_D]) {
-        moveX += 1;
-        g_player.dir = RIGHT;
-    }
-    
-    // Normalize diagonal movement
-    if (moveX != 0 && moveY != 0) {
-        float length = sqrt(moveX * moveX + moveY * moveY);
-        moveX /= length;
-        moveY /= length;
-    }
-    
-    // Apply movement
-    g_player.x += moveX * PLAYER_SPEED;
-    g_player.y += moveY * PLAYER_SPEED;
-
-    if (g_attack.active && SDL_GetTicks() - g_attack.startTime > ATTACK_DURATION) {
-        g_attack.active = false;
-    }
+    g_player.handleInput(keystate);
+    g_player.update();
 
     // Enemy spawning
     Uint32 currentTime = SDL_GetTicks();
@@ -320,8 +258,8 @@ void GameScene::update() {
                 g_enemies[i].y += g_enemies[i].knockbackY * 0.1f;
             } else {
                 // Normal movement towards player
-                float dx = g_player.x - g_enemies[i].x;
-                float dy = g_player.y - g_enemies[i].y;
+                float dx = g_player.getX() - g_enemies[i].x;
+                float dy = g_player.getY() - g_enemies[i].y;
                 float distance = sqrt(dx * dx + dy * dy);
                 
                 if (distance > 0) {
@@ -342,18 +280,18 @@ void GameScene::update() {
     }
 
     // Collision detection between attack and enemies
-    if (g_attack.active) {
+    if (g_player.getAttack().active) {
         for (int i = 0; i < MAX_ENEMIES; i++) {
             if (g_enemies[i].active) {
                 int enemySize = getEnemySize(g_enemies[i].level);
                 SDL_Rect enemyRect = {g_enemies[i].x, g_enemies[i].y, enemySize, enemySize};
-                if (SDL_HasIntersection(&g_attack.rect, &enemyRect)) {
+                if (SDL_HasIntersection(&g_player.getAttack().rect, &enemyRect)) {
                     // Enemy hit by attack - level down and knockback
                     g_enemies[i].level--;
                     
                     // Calculate knockback direction (away from player)
-                    float dx = g_enemies[i].x - g_player.x;
-                    float dy = g_enemies[i].y - g_player.y;
+                    float dx = g_enemies[i].x - g_player.getX();
+                    float dy = g_enemies[i].y - g_player.getY();
                     float distance = sqrt(dx * dx + dy * dy);
                     
                     if (distance > 0) {
@@ -403,11 +341,10 @@ void GameScene::update() {
         if (g_enemies[i].active) {
             int enemySize = getEnemySize(g_enemies[i].level);
             SDL_Rect enemyRect = {g_enemies[i].x, g_enemies[i].y, enemySize, enemySize};
-            SDL_Rect playerRect = {g_player.x, g_player.y, PLAYER_SIZE, PLAYER_SIZE};
+            SDL_Rect playerRect = g_player.getRect();
             if (SDL_HasIntersection(&playerRect, &enemyRect)) {
                 // Player hit by enemy - reset player position to center and lose all shards
-                g_player.x = SCREEN_WIDTH / 2 - PLAYER_SIZE / 2;
-                g_player.y = SCREEN_HEIGHT / 2 - PLAYER_SIZE / 2;
+                g_player.setPosition(SCREEN_WIDTH / 2 - Player::PLAYER_SIZE / 2, SCREEN_HEIGHT / 2 - Player::PLAYER_SIZE / 2);
                 g_score = 0; // Reset score to 0 when player dies
                 // Deactivate the enemy that hit the player
                 g_enemies[i].active = false;
@@ -420,8 +357,8 @@ void GameScene::update() {
         if (g_shards[i].active) {
             // Move shard towards player only if magnet effect is active
             if (currentTime < g_magnetEffectEndTime) {
-                float dx = g_player.x + PLAYER_SIZE/2 - (g_shards[i].x + SHARD_SIZE/2);
-                float dy = g_player.y + PLAYER_SIZE/2 - (g_shards[i].y + SHARD_SIZE/2);
+                float dx = g_player.getX() + Player::PLAYER_SIZE/2 - (g_shards[i].x + SHARD_SIZE/2);
+                float dy = g_player.getY() + Player::PLAYER_SIZE/2 - (g_shards[i].y + SHARD_SIZE/2);
                 float distance = sqrt(dx * dx + dy * dy);
                 
                 if (distance > 0) {
@@ -435,7 +372,7 @@ void GameScene::update() {
             
             // Player collection (when shard gets close enough)
             SDL_Rect shardRect = {g_shards[i].x, g_shards[i].y, SHARD_SIZE, SHARD_SIZE};
-            SDL_Rect playerRect = {g_player.x, g_player.y, PLAYER_SIZE, PLAYER_SIZE};
+            SDL_Rect playerRect = g_player.getRect();
             if (SDL_HasIntersection(&playerRect, &shardRect)) {
                 g_shards[i].active = false;
                 g_score += g_shards[i].value;
@@ -454,7 +391,7 @@ void GameScene::update() {
             
             // Player collection
             SDL_Rect magnetRect = {g_magnets[i].x, g_magnets[i].y, MAGNET_SIZE, MAGNET_SIZE};
-            SDL_Rect playerRect = {g_player.x, g_player.y, PLAYER_SIZE, PLAYER_SIZE};
+            SDL_Rect playerRect = g_player.getRect();
             if (SDL_HasIntersection(&playerRect, &magnetRect)) {
                 g_magnets[i].active = false;
                 // Activate magnet effect for 20 seconds
@@ -470,7 +407,7 @@ void GameScene::render() {
     SDL_RenderClear(m_renderer);
 
     // Render player
-    SDL_Rect playerRect = {g_player.x, g_player.y, PLAYER_SIZE, PLAYER_SIZE};
+    SDL_Rect playerRect = g_player.getRect();
     if (g_playerTexture) {
         SDL_RenderCopy(m_renderer, g_playerTexture, NULL, &playerRect);
     } else {
@@ -478,9 +415,9 @@ void GameScene::render() {
         SDL_RenderFillRect(m_renderer, &playerRect);
     }
 
-    if (g_attack.active) {
+    if (g_player.getAttack().active) {
         SDL_SetRenderDrawColor(m_renderer, 255, 0, 0, 255);
-        SDL_RenderFillRect(m_renderer, &g_attack.rect);
+        SDL_RenderFillRect(m_renderer, &g_player.getAttack().rect);
     }
 
     // Render enemies
