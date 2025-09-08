@@ -41,16 +41,19 @@ jobs:
     
     - name: Install SDL2 dependencies
       run: |
-        brew install sdl2 sdl2_ttf sdl2_image
+        brew install sdl2 sdl2_image
         
-    - name: Debug SDL2 paths
+    - name: Debug SDL2 paths and libraries
       run: |
         echo "Homebrew prefix: $(brew --prefix)"
         echo "SDL2 include path: $(brew --prefix sdl2)/include"
-        echo "SDL2_ttf include path: $(brew --prefix sdl2_ttf)/include"
         echo "SDL2_image include path: $(brew --prefix sdl2_image)/include"
+        echo "Checking for static libraries:"
+        ls -la $(brew --prefix)/lib/libSDL2* || echo "No SDL2 libraries found"
+        echo "Checking for dynamic libraries:"
+        ls -la $(brew --prefix)/lib/*SDL2*.dylib || echo "No SDL2 dylib files found"
+        echo "Checking for header files:"
         find $(brew --prefix) -name "SDL.h" 2>/dev/null || echo "SDL.h not found"
-        find $(brew --prefix) -name "SDL_ttf.h" 2>/dev/null || echo "SDL_ttf.h not found"
         find $(brew --prefix) -name "SDL_image.h" 2>/dev/null || echo "SDL_image.h not found"
         
     - name: Build for macOS
@@ -58,6 +61,15 @@ jobs:
         make -f Makefile.macos
         mv game game-macos
         chmod +x game-macos
+        
+    - name: Verify macOS build
+      run: |
+        echo "Checking linked libraries:"
+        otool -L game-macos || echo "otool failed"
+        echo "Checking file type:"
+        file game-macos
+        echo "Checking if executable runs (headless test):"
+        SDL_VIDEODRIVER=dummy timeout 5s ./game-macos || echo "Game test completed (timeout or exit is normal)"
         
     - name: Create macOS zip
       run: |
