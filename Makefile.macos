@@ -28,6 +28,7 @@ endif
 ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libavif.a),)
     IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libavif.a
 endif
+# JPEG XL library (from jpeg-xl package)
 ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libjxl.a),)
     IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libjxl.a
 endif
