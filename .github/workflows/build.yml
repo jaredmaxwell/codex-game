@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-windows:
-    runs-on: windows-latest
+    runs-on: windows-latest  # Change to [self-hosted, windows, vcpkg] when self-hosted runner is ready
     steps:
     - uses: actions/checkout@v4
       with:
@@ -19,7 +19,14 @@ jobs:
         git clone https://github.com/Microsoft/vcpkg.git
         .\vcpkg\bootstrap-vcpkg.bat
     
-    - name: Install dependencies
+    - name: Configure vcpkg binary caching
+      run: |
+        # Set up GitHub Packages as binary cache
+        .\vcpkg\vcpkg.exe config default-provider=ghcr
+        .\vcpkg\vcpkg.exe config --set-asset-sources=clear
+        .\vcpkg\vcpkg.exe config --set-asset-sources=ghcr,readwrite
+    
+    - name: Install dependencies with caching
       run: |
         .\vcpkg\vcpkg.exe install --triplet=x64-windows
     
