@@ -10,12 +10,7 @@ IMAGE_LIBS = $(HOMEBREW_PREFIX)/lib/libSDL2.a
 # Use custom-built SDL2_image with PNG support only (if available)
 ifdef SDL2_IMAGE_LIB
     IMAGE_LIBS += $(SDL2_IMAGE_LIB)/libSDL2_image.a
-    # Use the parent directory to avoid double SDL2 path when including <SDL2/SDL_image.h>
-    ifdef SDL2_IMAGE_INCLUDE
-        CXXFLAGS += -I$(dir $(SDL2_IMAGE_INCLUDE))
-    else
-        CXXFLAGS += -I$(SDL2_IMAGE_LIB)/../include
-    endif
+    CXXFLAGS += -I$(SDL2_IMAGE_INCLUDE)
 else
     # Fallback to Homebrew SDL2_image if custom build not available
     IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libSDL2_image.a
@@ -55,7 +50,7 @@ minimal: $(SRC)
 	@echo "Using only SDL2 and PNG support..."
 	@if [ -n "$(SDL2_IMAGE_LIB)" ] && [ -f "$(SDL2_IMAGE_LIB)/libSDL2_image.a" ]; then \
 		echo "Using custom SDL2_image from $(SDL2_IMAGE_LIB)"; \
-		$(CXX) $(CXXFLAGS) -I$(dir $(SDL2_IMAGE_INCLUDE)) -o game-minimal $(SRC) \
+		$(CXX) $(CXXFLAGS) -I$(SDL2_IMAGE_INCLUDE) -o game-minimal $(SRC) \
 			$(HOMEBREW_PREFIX)/lib/libSDL2.a \
 			$(SDL2_IMAGE_LIB)/libSDL2_image.a \
 			$(HOMEBREW_PREFIX)/lib/libpng.a \

@@ -1,6 +1,10 @@
 #include "bitmap_font.h"
 #include <iostream>
+#if defined(__EMSCRIPTEN__) || defined(_WIN32)
 #include <SDL_image.h>
+#else
+#include <SDL2/SDL_image.h>
+#endif
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
