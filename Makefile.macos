@@ -9,7 +9,27 @@ STATIC ?= 1
 
 ifeq ($(STATIC), 1)
     # Static linking - embeds SDL2 into the executable
-    LDFLAGS = -L$(HOMEBREW_PREFIX)/lib $(HOMEBREW_PREFIX)/lib/libSDL2.a $(HOMEBREW_PREFIX)/lib/libSDL2_image.a $(HOMEBREW_PREFIX)/lib/libpng.a $(HOMEBREW_PREFIX)/lib/libjpeg.a $(HOMEBREW_PREFIX)/lib/libtiff.a $(HOMEBREW_PREFIX)/lib/libwebp.a $(HOMEBREW_PREFIX)/lib/libavif.a $(HOMEBREW_PREFIX)/lib/libjxl.a -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -framework CoreAudio -framework AudioToolbox -framework CoreHaptics -framework GameController -framework CoreServices -framework Metal -framework Foundation -framework QuartzCore -framework ForceFeedback -framework Carbon -framework ImageIO -framework CoreGraphics -framework ApplicationServices -framework Security -framework SystemConfiguration -framework AppKit
+    # Build list of available image format libraries
+    IMAGE_LIBS = $(HOMEBREW_PREFIX)/lib/libSDL2.a $(HOMEBREW_PREFIX)/lib/libSDL2_image.a
+    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libpng.a),)
+        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libpng.a
+    endif
+    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libjpeg.a),)
+        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libjpeg.a
+    endif
+    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libtiff.a),)
+        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libtiff.a
+    endif
+    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libwebp.a),)
+        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libwebp.a
+    endif
+    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libavif.a),)
+        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libavif.a
+    endif
+    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libjxl.a),)
+        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libjxl.a
+    endif
+    LDFLAGS = -L$(HOMEBREW_PREFIX)/lib $(IMAGE_LIBS) -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -framework CoreAudio -framework AudioToolbox -framework CoreHaptics -framework GameController -framework CoreServices -framework Metal -framework Foundation -framework QuartzCore -framework ForceFeedback -framework Carbon -framework ImageIO -framework CoreGraphics -framework ApplicationServices -framework Security -framework SystemConfiguration -framework AppKit
     TARGET = game
     MESSAGE = "Building with static SDL2 linking (recommended for distribution)"
 else
@@ -27,14 +47,16 @@ ifeq ($(STATIC), 1)
 	@echo "Checking for static SDL2 libraries..."
 	@test -f $(HOMEBREW_PREFIX)/lib/libSDL2.a || (echo "Error: libSDL2.a not found. Install with: brew install sdl2" && exit 1)
 	@test -f $(HOMEBREW_PREFIX)/lib/libSDL2_image.a || (echo "Error: libSDL2_image.a not found. Install with: brew install sdl2_image" && exit 1)
-	@echo "Checking for static image format libraries..."
-	@test -f $(HOMEBREW_PREFIX)/lib/libpng.a || (echo "Error: libpng.a not found. Install with: brew install libpng" && exit 1)
-	@test -f $(HOMEBREW_PREFIX)/lib/libjpeg.a || (echo "Error: libjpeg.a not found. Install with: brew install libjpeg" && exit 1)
-	@test -f $(HOMEBREW_PREFIX)/lib/libtiff.a || (echo "Error: libtiff.a not found. Install with: brew install libtiff" && exit 1)
-	@test -f $(HOMEBREW_PREFIX)/lib/libwebp.a || (echo "Error: libwebp.a not found. Install with: brew install webp" && exit 1)
-	@test -f $(HOMEBREW_PREFIX)/lib/libavif.a || (echo "Error: libavif.a not found. Install with: brew install libavif" && exit 1)
-	@test -f $(HOMEBREW_PREFIX)/lib/libjxl.a || (echo "Error: libjxl.a not found. Install with: brew install libjxl" && exit 1)
-	@echo "All static libraries found, linking..."
+	@echo "Checking for available static image format libraries..."
+	@echo "Available libraries:"
+	@for lib in libpng.a libjpeg.a libtiff.a libwebp.a libavif.a libjxl.a; do \
+		if [ -f "$(HOMEBREW_PREFIX)/lib/$$lib" ]; then \
+			echo "  ✓ $$lib"; \
+		else \
+			echo "  ✗ $$lib (not found)"; \
+		fi; \
+	done
+	@echo "Linking with available libraries..."
 endif
 	$(CXX) $(CXXFLAGS) -o $@ $(SRC) $(LDFLAGS)
 	@echo "Build complete!"

@@ -465,7 +465,9 @@ void gameLoop() {
     
     // Check if we should quit
     if (g_quit) {
+        #ifdef __EMSCRIPTEN__
         emscripten_cancel_main_loop();
+        #endif
     }
 }
 
