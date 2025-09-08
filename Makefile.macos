@@ -81,21 +81,20 @@ $(TARGET): $(SRC)
 	fi
 	@echo "Checking for PNG support libraries..."
 	@echo "Available libraries:"
-	@for lib in libpng.a libz.a; do \
-		if [ -f "$(HOMEBREW_PREFIX)/lib/$$lib" ]; then \
-			echo "  ✓ $$lib"; \
-		else \
-			echo "  ✗ $$lib (not found)"; \
-		fi; \
-	done
-	@echo "Checking system libraries:"
-	@for lib in /usr/lib/libz.a; do \
-		if [ -f "$$lib" ]; then \
-			echo "  ✓ $$lib"; \
-		else \
-			echo "  ✗ $$lib (not found)"; \
-		fi; \
-	done
+	@if [ -f "$(HOMEBREW_PREFIX)/lib/libpng.a" ]; then \
+		echo "  ✓ libpng.a"; \
+	else \
+		echo "  ✗ libpng.a (not found)"; \
+	fi
+	@if [ -n "$(ZLIB_LIB)" ] && [ -f "$(ZLIB_LIB)/libz.a" ]; then \
+		echo "  ✓ libz.a (found at $(ZLIB_LIB)/libz.a)"; \
+	elif [ -f "$(HOMEBREW_PREFIX)/lib/libz.a" ]; then \
+		echo "  ✓ libz.a"; \
+	elif [ -f "/usr/lib/libz.a" ]; then \
+		echo "  ✓ libz.a (system)"; \
+	else \
+		echo "  ✗ libz.a (not found)"; \
+	fi
 	@echo "Linking with available libraries..."
 	$(CXX) $(CXXFLAGS) -o $@ $(SRC) $(LDFLAGS)
 	@echo "Build complete!"

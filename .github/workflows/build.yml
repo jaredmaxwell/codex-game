@@ -155,6 +155,8 @@ jobs:
         find $SDL2_IMAGE_PREFIX -name "SDL_image.h" 2>/dev/null || echo "SDL_image.h not found"
         echo "Contents of $SDL2_IMAGE_PREFIX/include/:"
         find $SDL2_IMAGE_PREFIX/include -type f 2>/dev/null || echo "No include files found"
+        echo "Full directory structure of $SDL2_IMAGE_PREFIX:"
+        find $SDL2_IMAGE_PREFIX -type f 2>/dev/null | head -20 || echo "No files found"
         
         # Set environment variables for the build
         echo "SDL2_IMAGE_PREFIX=$SDL2_IMAGE_PREFIX" >> $GITHUB_ENV
