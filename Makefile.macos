@@ -10,7 +10,15 @@ STATIC ?= 1
 ifeq ($(STATIC), 1)
     # Static linking - embeds SDL2 into the executable
     # Build list of available image format libraries
-    IMAGE_LIBS = $(HOMEBREW_PREFIX)/lib/libSDL2.a $(HOMEBREW_PREFIX)/lib/libSDL2_image.a
+    IMAGE_LIBS = $(HOMEBREW_PREFIX)/lib/libSDL2.a
+    # Check for SDL2_image in multiple locations
+    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libSDL2_image.a),)
+        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libSDL2_image.a
+    else ifneq ($(wildcard /usr/local/lib/libSDL2_image.a),)
+        IMAGE_LIBS += /usr/local/lib/libSDL2_image.a
+    else ifneq ($(wildcard /opt/homebrew/lib/libSDL2_image.a),)
+        IMAGE_LIBS += /opt/homebrew/lib/libSDL2_image.a
+    endif
     ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libpng.a),)
         IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libpng.a
     endif
@@ -39,7 +47,7 @@ ifeq ($(STATIC), 1)
     ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/liblzma.a),)
         IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/liblzma.a
     endif
-    LDFLAGS = -L$(HOMEBREW_PREFIX)/lib $(IMAGE_LIBS) -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -framework CoreAudio -framework AudioToolbox -framework CoreHaptics -framework GameController -framework CoreServices -framework Metal -framework Foundation -framework QuartzCore -framework ForceFeedback -framework Carbon -framework ImageIO -framework CoreGraphics -framework ApplicationServices -framework Security -framework SystemConfiguration -framework AppKit
+    LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -L/usr/local/lib -L/opt/homebrew/lib $(IMAGE_LIBS) -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -framework CoreAudio -framework AudioToolbox -framework CoreHaptics -framework GameController -framework CoreServices -framework Metal -framework Foundation -framework QuartzCore -framework ForceFeedback -framework Carbon -framework ImageIO -framework CoreGraphics -framework ApplicationServices -framework Security -framework SystemConfiguration -framework AppKit
     TARGET = game
     MESSAGE = "Building with static SDL2 linking (recommended for distribution)"
 else
@@ -56,7 +64,16 @@ $(TARGET): $(SRC)
 ifeq ($(STATIC), 1)
 	@echo "Checking for static SDL2 libraries..."
 	@test -f $(HOMEBREW_PREFIX)/lib/libSDL2.a || (echo "Error: libSDL2.a not found. Install with: brew install sdl2" && exit 1)
-	@test -f $(HOMEBREW_PREFIX)/lib/libSDL2_image.a || (echo "Error: libSDL2_image.a not found. Install with: brew install sdl2_image" && exit 1)
+	@if [ -f "$(HOMEBREW_PREFIX)/lib/libSDL2_image.a" ]; then \
+		echo "Found Homebrew SDL2_image"; \
+	elif [ -f "/usr/local/lib/libSDL2_image.a" ]; then \
+		echo "Found custom-built SDL2_image in /usr/local/lib"; \
+	elif [ -f "/opt/homebrew/lib/libSDL2_image.a" ]; then \
+		echo "Found custom-built SDL2_image in /opt/homebrew/lib"; \
+	else \
+		echo "Error: libSDL2_image.a not found. Expected in Homebrew or /usr/local/lib"; \
+		exit 1; \
+	fi
 	@echo "Checking for available static image format libraries..."
 	@echo "Available libraries:"
 	@for lib in libpng.a libjpeg.a libtiff.a libwebp.a libavif.a libjxl.a libz.a libzstd.a liblzma.a; do \
