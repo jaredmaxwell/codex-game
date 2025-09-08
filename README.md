@@ -20,3 +20,4 @@ Use `WASD` to move and `J` to attack. Use `ESC` to quit.
 
 In headless environments, run with `SDL_VIDEODRIVER=dummy ./game`.
 
+
