@@ -10,7 +10,7 @@ STATIC ?= 1
 ifeq ($(STATIC), 1)
     # Static linking - embeds SDL2 into the executable
     LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lSDL2 -lSDL2_image -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreAudio -framework AudioToolbox -framework ForceFeedback
-    TARGET = game-static
+    TARGET = game
     MESSAGE = "Building with static SDL2 linking (recommended for distribution)"
 else
     # Dynamic linking - requires SDL2 to be installed or bundled
@@ -36,6 +36,6 @@ dynamic:
 	@$(MAKE) STATIC=0
 
 clean:
-	rm -f game game-static
+	rm -f game
 
 .PHONY: all static dynamic clean
