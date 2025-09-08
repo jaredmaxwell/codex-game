@@ -174,7 +174,9 @@ int SDL_main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Test file system access in Emscripten
+    // Test file system access in Emscripten and determine working path
+    const char* workingPath = nullptr;
+    
     #ifdef __EMSCRIPTEN__
     std::cout << "Emscripten build detected - testing file system access..." << std::endl;
     // Try different possible paths for GitHub Pages deployment
@@ -185,7 +187,6 @@ int SDL_main(int argc, char* argv[]) {
         "codex-game/assets/dbyte_1x.png"
     };
     
-    const char* workingPath = nullptr;
     for (const char* path : possiblePaths) {
         FILE* testFile = fopen(path, "rb");
         if (testFile) {
