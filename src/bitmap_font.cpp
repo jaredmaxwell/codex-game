@@ -2,6 +2,10 @@
 #include <iostream>
 #include <SDL_image.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 BitmapFont::BitmapFont() : fontTexture(nullptr), charWidth(6), charHeight(8), charsPerRow(16) {
 }
 
@@ -12,11 +16,34 @@ BitmapFont::~BitmapFont() {
 }
 
 bool BitmapFont::loadFont(SDL_Renderer* renderer, const char* fontPath) {
-    SDL_Surface* fontSurface = IMG_Load(fontPath);
-    if (!fontSurface) {
-        std::cerr << "Failed to load font: " << SDL_GetError() << std::endl;
+    if (!renderer) {
+        std::cerr << "BitmapFont::loadFont: renderer is null" << std::endl;
         return false;
     }
+    
+    if (!fontPath) {
+        std::cerr << "BitmapFont::loadFont: fontPath is null" << std::endl;
+        return false;
+    }
+    
+    std::cout << "BitmapFont::loadFont: Attempting to load font from: " << fontPath << std::endl;
+    
+    #ifdef __EMSCRIPTEN__
+    std::cout << "Emscripten: Testing IMG_Load function availability..." << std::endl;
+    #endif
+    
+    SDL_Surface* fontSurface = IMG_Load(fontPath);
+    if (!fontSurface) {
+        std::cerr << "Failed to load font: " << fontPath << " - " << SDL_GetError() << std::endl;
+        std::cerr << "IMG_Load error: " << IMG_GetError() << std::endl;
+        #ifdef __EMSCRIPTEN__
+        std::cerr << "Emscripten: IMG_Load failed - this might be a file system or SDL_image issue" << std::endl;
+        #endif
+        return false;
+    }
+    
+    std::cout << "BitmapFont::loadFont: Font surface loaded successfully, size: " 
+              << fontSurface->w << "x" << fontSurface->h << std::endl;
     
     // Convert to texture with alpha channel for better rendering
     SDL_SetColorKey(fontSurface, SDL_TRUE, SDL_MapRGB(fontSurface->format, 0, 0, 0));
@@ -25,9 +52,24 @@ bool BitmapFont::loadFont(SDL_Renderer* renderer, const char* fontPath) {
     
     if (!fontTexture) {
         std::cerr << "Failed to create font texture: " << SDL_GetError() << std::endl;
+        #ifdef __EMSCRIPTEN__
+        std::cerr << "Emscripten: Attempting to create fallback font texture..." << std::endl;
+        // Create a simple fallback texture for Emscripten
+        SDL_Surface* fallbackSurface = SDL_CreateRGBSurface(0, 96, 8, 32, 0, 0, 0, 0);
+        if (fallbackSurface) {
+            SDL_FillRect(fallbackSurface, NULL, SDL_MapRGB(fallbackSurface->format, 255, 255, 255));
+            fontTexture = SDL_CreateTextureFromSurface(renderer, fallbackSurface);
+            SDL_FreeSurface(fallbackSurface);
+            if (fontTexture) {
+                std::cout << "Emscripten: Fallback font texture created successfully" << std::endl;
+                return true;
+            }
+        }
+        #endif
         return false;
     }
     
+    std::cout << "BitmapFont::loadFont: Font texture created successfully" << std::endl;
     return true;
 }
 

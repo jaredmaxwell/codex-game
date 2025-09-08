@@ -130,7 +130,14 @@ int SDL_main(int argc, char* argv[]) {
         return 1;
     }
 
-    // No need for TTF_Init anymore - using bitmap fonts
+    // Initialize SDL_image
+    int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
+    if (!(IMG_Init(imgFlags) & imgFlags)) {
+        std::cerr << "SDL_image could not initialize! SDL_image Error: " << IMG_GetError() << std::endl;
+        // Don't return here - we can still run without images
+    } else {
+        std::cout << "SDL_image initialized successfully" << std::endl;
+    }
 
     SDL_Window* win = SDL_CreateWindow("Simple SDL Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                       SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
@@ -151,12 +158,28 @@ int SDL_main(int argc, char* argv[]) {
         return 1;
     }
 
+    // Test file system access in Emscripten
+    #ifdef __EMSCRIPTEN__
+    std::cout << "Emscripten build detected - testing file system access..." << std::endl;
+    FILE* testFile = fopen("assets/dbyte_1x.png", "rb");
+    if (testFile) {
+        std::cout << "File system access successful - assets/dbyte_1x.png is accessible" << std::endl;
+        fclose(testFile);
+    } else {
+        std::cerr << "File system access failed - assets/dbyte_1x.png is not accessible" << std::endl;
+    }
+    #endif
+
     // Load bitmap font
     BitmapFont* font = new BitmapFont();
+    std::cout << "Attempting to load bitmap font..." << std::endl;
     if (!font->loadFont(ren, "assets/dbyte_1x.png")) {
         std::cerr << "Failed to load bitmap font - text rendering will be disabled" << std::endl;
+        std::cerr << "Renderer info: " << (ren ? "valid" : "null") << std::endl;
         delete font;
         font = nullptr;
+    } else {
+        std::cout << "Bitmap font loaded successfully!" << std::endl;
     }
 
     // Load player character image
@@ -553,6 +576,7 @@ int SDL_main(int argc, char* argv[]) {
     }
     SDL_DestroyRenderer(ren);
     SDL_DestroyWindow(win);
+    IMG_Quit();
     SDL_Quit();
     return 0;
 }
