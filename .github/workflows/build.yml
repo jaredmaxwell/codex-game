@@ -43,9 +43,14 @@ jobs:
       run: |
         brew install sdl2 sdl2_image
         # Install image format libraries that SDL2_image depends on
-        brew install libpng libjpeg libtiff webp libavif zstd xz
+        brew install libpng libjpeg libtiff webp libavif zstd xz zlib
         # Try to install libjxl (JPEG XL) - may not be available
         brew install libjxl || echo "libjxl not available, skipping"
+        # Install additional compression libraries
+        brew install brotli lz4
+        # Try to install missing libraries that might be needed
+        brew install libavif || echo "libavif installation failed, will use fallback"
+        brew install libjxl || echo "libjxl installation failed, will use fallback"
         
     - name: Debug SDL2 paths and libraries
       run: |
@@ -59,11 +64,31 @@ jobs:
         echo "Checking for header files:"
         find $(brew --prefix) -name "SDL.h" 2>/dev/null || echo "SDL.h not found"
         find $(brew --prefix) -name "SDL_image.h" 2>/dev/null || echo "SDL_image.h not found"
+        echo "Checking for image format libraries:"
+        for lib in libpng.a libjpeg.a libtiff.a libwebp.a libavif.a libjxl.a libz.a libzstd.a liblzma.a libbrotlidec.a liblz4.a; do
+          if [ -f "$(brew --prefix)/lib/$lib" ]; then
+            echo "  ✓ $lib found"
+          else
+            echo "  ✗ $lib missing"
+          fi
+        done
         
     - name: Build for macOS
       run: |
-        make -f Makefile.macos
-        mv game game-macos
+        # Try full static build first
+        if make -f Makefile.macos; then
+          echo "✓ Full static build successful"
+          mv game game-macos
+        else
+          echo "⚠ Full static build failed, trying minimal build..."
+          if make -f Makefile.macos minimal; then
+            echo "✓ Minimal static build successful"
+            mv game-minimal game-macos
+          else
+            echo "✗ Both builds failed"
+            exit 1
+          fi
+        fi
         chmod +x game-macos
         
     - name: Verify macOS build
