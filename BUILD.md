@@ -42,13 +42,7 @@ make
 
 **macOS:**
 ```bash
-# Static linking (recommended for distribution)
-make -f Makefile.macos static
-
-# Or dynamic linking (requires SDL2 to be installed)
-make -f Makefile.macos dynamic
-
-# Default is static linking
+# Static linking (distribution-ready)
 make -f Makefile.macos
 ```
 
@@ -115,9 +109,9 @@ If assets are not found, the game will use colored rectangles as placeholders.
 ### macOS
 - Ensure Homebrew is installed and up to date
 - Check that SDL2 libraries are in the correct paths
-- **"Library not loaded: libSDL2.dylib" error**: Use static linking with `make -f Makefile.macos static`
-- For distribution, static linking is recommended as it embeds SDL2 into the executable
-- If using dynamic linking, ensure SDL2 dylib files are in the same directory as the executable
+- **"Library not loaded: libSDL2.dylib" error**: The build uses static linking by default, which embeds SDL2 into the executable
+- The build automatically includes all required image format libraries (PNG, JPEG, TIFF, WebP, etc.)
+- No external SDL2 installation required for end users
 
 ### Linux
 - Ensure development packages are installed (not just runtime)

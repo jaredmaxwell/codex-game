@@ -4,76 +4,50 @@ HOMEBREW_PREFIX = $(shell brew --prefix)
 CXXFLAGS = -std=c++17 -I$(HOMEBREW_PREFIX)/include/SDL2 -I$(HOMEBREW_PREFIX)/include
 SRC = src/main.cpp src/bitmap_font.cpp
 
-# Default to static linking (recommended for distribution)
-STATIC ?= 1
-
-ifeq ($(STATIC), 1)
-    # Static linking - embeds SDL2 into the executable
-    # Build list of available image format libraries
-    IMAGE_LIBS = $(HOMEBREW_PREFIX)/lib/libSDL2.a
-    # Check for SDL2_image in multiple locations
-    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libSDL2_image.a),)
-        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libSDL2_image.a
-    else ifneq ($(wildcard /usr/local/lib/libSDL2_image.a),)
-        IMAGE_LIBS += /usr/local/lib/libSDL2_image.a
-    else ifneq ($(wildcard /opt/homebrew/lib/libSDL2_image.a),)
-        IMAGE_LIBS += /opt/homebrew/lib/libSDL2_image.a
-    endif
-    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libpng.a),)
-        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libpng.a
-    endif
-    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libjpeg.a),)
-        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libjpeg.a
-    endif
-    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libtiff.a),)
-        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libtiff.a
-    endif
-    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libwebp.a),)
-        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libwebp.a
-    endif
-    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libavif.a),)
-        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libavif.a
-    endif
-    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libjxl.a),)
-        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libjxl.a
-    endif
-    # Add compression libraries that image formats depend on
-    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libz.a),)
-        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libz.a
-    endif
-    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libzstd.a),)
-        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libzstd.a
-    endif
-    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/liblzma.a),)
-        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/liblzma.a
-    endif
-    LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -L/usr/local/lib -L/opt/homebrew/lib $(IMAGE_LIBS) -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -framework CoreAudio -framework AudioToolbox -framework CoreHaptics -framework GameController -framework CoreServices -framework Metal -framework Foundation -framework QuartzCore -framework ForceFeedback -framework Carbon -framework ImageIO -framework CoreGraphics -framework ApplicationServices -framework Security -framework SystemConfiguration -framework AppKit
-    TARGET = game
-    MESSAGE = "Building with static SDL2 linking (recommended for distribution)"
-else
-    # Dynamic linking - requires SDL2 to be installed
-    LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lSDL2 -lSDL2_image -framework Cocoa
-    TARGET = game
-    MESSAGE = "Building with dynamic SDL2 linking (requires SDL2 to be installed)"
+# Static linking only - embeds SDL2 into the executable for distribution
+# Build list of available image format libraries
+IMAGE_LIBS = $(HOMEBREW_PREFIX)/lib/libSDL2.a
+# Use Homebrew SDL2_image
+IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libSDL2_image.a
+ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libpng.a),)
+    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libpng.a
 endif
+ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libjpeg.a),)
+    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libjpeg.a
+endif
+ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libtiff.a),)
+    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libtiff.a
+endif
+ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libwebp.a),)
+    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libwebp.a
+endif
+ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libavif.a),)
+    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libavif.a
+endif
+ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libjxl.a),)
+    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libjxl.a
+endif
+# Add compression libraries that image formats depend on
+ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libz.a),)
+    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libz.a
+endif
+ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libzstd.a),)
+    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libzstd.a
+endif
+ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/liblzma.a),)
+    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/liblzma.a
+endif
+LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -L/usr/local/lib -L/opt/homebrew/lib $(IMAGE_LIBS) -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -framework CoreAudio -framework AudioToolbox -framework CoreHaptics -framework GameController -framework CoreServices -framework Metal -framework Foundation -framework QuartzCore -framework ForceFeedback -framework Carbon -framework ImageIO -framework CoreGraphics -framework ApplicationServices -framework Security -framework SystemConfiguration -framework AppKit
+TARGET = game
+MESSAGE = "Building with static SDL2 linking (distribution-ready)"
 
 all: $(TARGET)
 
 $(TARGET): $(SRC)
 	@echo $(MESSAGE)
-ifeq ($(STATIC), 1)
 	@echo "Checking for static SDL2 libraries..."
 	@test -f $(HOMEBREW_PREFIX)/lib/libSDL2.a || (echo "Error: libSDL2.a not found. Install with: brew install sdl2" && exit 1)
-	@if [ -f "$(HOMEBREW_PREFIX)/lib/libSDL2_image.a" ]; then \
-		echo "Found Homebrew SDL2_image"; \
-	elif [ -f "/usr/local/lib/libSDL2_image.a" ]; then \
-		echo "Found custom-built SDL2_image in /usr/local/lib"; \
-	elif [ -f "/opt/homebrew/lib/libSDL2_image.a" ]; then \
-		echo "Found custom-built SDL2_image in /opt/homebrew/lib"; \
-	else \
-		echo "Error: libSDL2_image.a not found. Expected in Homebrew or /usr/local/lib"; \
-		exit 1; \
-	fi
+	@test -f $(HOMEBREW_PREFIX)/lib/libSDL2_image.a || (echo "Error: libSDL2_image.a not found. Install with: brew install sdl2_image" && exit 1)
 	@echo "Checking for available static image format libraries..."
 	@echo "Available libraries:"
 	@for lib in libpng.a libjpeg.a libtiff.a libwebp.a libavif.a libjxl.a libz.a libzstd.a liblzma.a; do \
@@ -84,17 +58,10 @@ ifeq ($(STATIC), 1)
 		fi; \
 	done
 	@echo "Linking with available libraries..."
-endif
 	$(CXX) $(CXXFLAGS) -o $@ $(SRC) $(LDFLAGS)
 	@echo "Build complete!"
-
-static:
-	@$(MAKE) STATIC=1
-
-dynamic:
-	@$(MAKE) STATIC=0
 
 clean:
 	rm -f game
 
-.PHONY: all static dynamic clean
+.PHONY: all clean
