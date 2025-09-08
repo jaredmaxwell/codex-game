@@ -21,7 +21,8 @@ jobs:
     
     - name: Install dependencies with binary caching
       env:
-        VCPKG_BINARY_SOURCES: "clear;ghcr,readwrite"
+        VCPKG_BINARY_SOURCES: "clear;nuget,GitHub,readwrite"
+        NUGET_CREDENTIALPROVIDERS_PATH: ${{ github.workspace }}\vcpkg\scripts\azure-pipelines
       run: |
         .\vcpkg\vcpkg.exe install --triplet=x64-windows
     
