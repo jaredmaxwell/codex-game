@@ -161,14 +161,18 @@ jobs:
         # Set environment variables for the build
         echo "SDL2_IMAGE_PREFIX=$SDL2_IMAGE_PREFIX" >> $GITHUB_ENV
         echo "SDL2_IMAGE_LIB=$SDL2_IMAGE_PREFIX/lib" >> $GITHUB_ENV
-        # Find the actual include directory
+        # Find the actual include directory and set it to the parent of where SDL_image.h is found
+        # This allows the Makefile to add the SDL2 subdirectory correctly
         SDL2_IMAGE_INCLUDE_DIR=$(find $SDL2_IMAGE_PREFIX -name "SDL_image.h" -type f 2>/dev/null | head -1 | xargs dirname)
         if [ -n "$SDL2_IMAGE_INCLUDE_DIR" ]; then
-          echo "SDL2_IMAGE_INCLUDE=$SDL2_IMAGE_INCLUDE_DIR" >> $GITHUB_ENV
+          # Get the parent directory of where SDL_image.h is found
+          SDL2_IMAGE_INCLUDE_PARENT=$(dirname "$SDL2_IMAGE_INCLUDE_DIR")
+          echo "SDL2_IMAGE_INCLUDE=$SDL2_IMAGE_INCLUDE_PARENT" >> $GITHUB_ENV
           echo "Found SDL_image.h at: $SDL2_IMAGE_INCLUDE_DIR"
+          echo "Setting include path to parent: $SDL2_IMAGE_INCLUDE_PARENT"
         else
-          echo "SDL2_IMAGE_INCLUDE=$SDL2_IMAGE_PREFIX/include/SDL2" >> $GITHUB_ENV
-          echo "Using default include path: $SDL2_IMAGE_PREFIX/include/SDL2"
+          echo "SDL2_IMAGE_INCLUDE=$SDL2_IMAGE_PREFIX/include" >> $GITHUB_ENV
+          echo "Using default include path: $SDL2_IMAGE_PREFIX/include"
         fi
         
         echo "SDL2_image built with PNG support only to $SDL2_IMAGE_PREFIX"
