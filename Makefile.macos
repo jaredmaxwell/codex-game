@@ -29,6 +29,16 @@ ifeq ($(STATIC), 1)
     ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libjxl.a),)
         IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libjxl.a
     endif
+    # Add compression libraries that image formats depend on
+    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libz.a),)
+        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libz.a
+    endif
+    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libzstd.a),)
+        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libzstd.a
+    endif
+    ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/liblzma.a),)
+        IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/liblzma.a
+    endif
     LDFLAGS = -L$(HOMEBREW_PREFIX)/lib $(IMAGE_LIBS) -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -framework CoreAudio -framework AudioToolbox -framework CoreHaptics -framework GameController -framework CoreServices -framework Metal -framework Foundation -framework QuartzCore -framework ForceFeedback -framework Carbon -framework ImageIO -framework CoreGraphics -framework ApplicationServices -framework Security -framework SystemConfiguration -framework AppKit
     TARGET = game
     MESSAGE = "Building with static SDL2 linking (recommended for distribution)"
@@ -49,7 +59,7 @@ ifeq ($(STATIC), 1)
 	@test -f $(HOMEBREW_PREFIX)/lib/libSDL2_image.a || (echo "Error: libSDL2_image.a not found. Install with: brew install sdl2_image" && exit 1)
 	@echo "Checking for available static image format libraries..."
 	@echo "Available libraries:"
-	@for lib in libpng.a libjpeg.a libtiff.a libwebp.a libavif.a libjxl.a; do \
+	@for lib in libpng.a libjpeg.a libtiff.a libwebp.a libavif.a libjxl.a libz.a libzstd.a liblzma.a; do \
 		if [ -f "$(HOMEBREW_PREFIX)/lib/$$lib" ]; then \
 			echo "  ✓ $$lib"; \
 		else \

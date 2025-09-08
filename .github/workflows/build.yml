@@ -41,11 +41,20 @@ jobs:
     
     - name: Install SDL2 dependencies
       run: |
-        brew install sdl2 sdl2_image
+        brew install sdl2
         # Install image format libraries that SDL2_image depends on
-        brew install libpng libjpeg libtiff webp libavif
+        brew install libpng libjpeg libtiff webp libavif zstd xz
         # Try to install libjxl (JPEG XL) - may not be available
         brew install libjxl || echo "libjxl not available, skipping"
+        # Build SDL2_image from source to avoid problematic dependencies
+        echo "Building SDL2_image from source..."
+        git clone https://github.com/libsdl-org/SDL_image.git
+        cd SDL_image
+        git checkout SDL2
+        mkdir build && cd build
+        cmake .. -DSDL2IMAGE_STATIC=ON -DSDL2IMAGE_AVIF=OFF -DSDL2IMAGE_JXL=OFF -DCMAKE_BUILD_TYPE=Release
+        make -j$(sysctl -n hw.ncpu)
+        sudo make install
         
     - name: Debug SDL2 paths and libraries
       run: |
