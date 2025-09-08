@@ -37,8 +37,6 @@ jobs:
         NUGET_CREDENTIALPROVIDERS_PATH: ${{ github.workspace }}\vcpkg\scripts\azure-pipelines
       run: |
         echo "VCPKG_BINARY_SOURCES: $env:VCPKG_BINARY_SOURCES"
-        echo "Checking vcpkg binary sources configuration..."
-        .\vcpkg\vcpkg.exe config
         echo "Installing dependencies with verbose output..."
         .\vcpkg\vcpkg.exe install --triplet=x64-windows --verbose
     
