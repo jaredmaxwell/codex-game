@@ -1,10 +1,8 @@
 #if defined(__EMSCRIPTEN__) || defined(_WIN32)
 #include <SDL.h>
-#include <SDL_ttf.h>
 #include <SDL_image.h>
 #else
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
 #endif
 #include <iostream>
@@ -12,6 +10,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <string>
+#include "bitmap_font.h"
 
 // Platform-specific main function handling
 #ifdef __EMSCRIPTEN__
@@ -82,18 +81,14 @@ struct Magnet {
     Uint32 spawnTime;
 };
 
-// Function to render text
-void renderText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text, int x, int y, SDL_Color color) {
-    SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), color);
-    if (surface) {
-        SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-        if (texture) {
-            SDL_Rect dest = {x, y, surface->w, surface->h};
-            SDL_RenderCopy(renderer, texture, NULL, &dest);
-            SDL_DestroyTexture(texture);
-        }
-        SDL_FreeSurface(surface);
+// Function to render text using bitmap font
+void renderText(SDL_Renderer* renderer, BitmapFont* font, const std::string& text, int x, int y, SDL_Color color) {
+    if (!font) {
+        // If no font is available, skip text rendering
+        return;
     }
+    
+    font->renderText(renderer, text, x, y, color);
 }
 
 // Function to get enemy size based on level
@@ -135,11 +130,7 @@ int SDL_main(int argc, char* argv[]) {
         return 1;
     }
 
-    if (TTF_Init() != 0) {
-        std::cerr << "TTF_Init Error: " << TTF_GetError() << std::endl;
-        SDL_Quit();
-        return 1;
-    }
+    // No need for TTF_Init anymore - using bitmap fonts
 
     SDL_Window* win = SDL_CreateWindow("Simple SDL Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                       SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
@@ -156,20 +147,16 @@ int SDL_main(int argc, char* argv[]) {
     if (!ren) {
         std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
         SDL_DestroyWindow(win);
-        TTF_Quit();
         SDL_Quit();
         return 1;
     }
 
-    // Load font (using a default system font)
-    TTF_Font* font = TTF_OpenFont("C:/Windows/Fonts/arial.ttf", 24);
-    if (!font) {
-        std::cerr << "TTF_OpenFont Error: " << TTF_GetError() << std::endl;
-        SDL_DestroyRenderer(ren);
-        SDL_DestroyWindow(win);
-        TTF_Quit();
-        SDL_Quit();
-        return 1;
+    // Load bitmap font
+    BitmapFont* font = new BitmapFont();
+    if (!font->loadFont(ren, "assets/dbyte_1x.png")) {
+        std::cerr << "Failed to load bitmap font - text rendering will be disabled" << std::endl;
+        delete font;
+        font = nullptr;
     }
 
     // Load player character image
@@ -516,8 +503,9 @@ int SDL_main(int argc, char* argv[]) {
                 
                 // Render level number
                 SDL_Color white = {255, 255, 255, 255};
-                std::string levelText = std::to_string(enemies[i].level);
-                renderText(ren, font, levelText, enemies[i].x + enemySize/2 - 6, enemies[i].y + enemySize/2 - 8, white);
+                if (font) {
+                    renderText(ren, font, std::to_string(enemies[i].level), enemies[i].x + enemySize/2 - 4, enemies[i].y + enemySize/2 - 6, white);
+                }
             }
         }
 
@@ -541,8 +529,9 @@ int SDL_main(int argc, char* argv[]) {
 
         // Render score
         SDL_Color white = {255, 255, 255, 255};
-        std::string scoreText = "Shards: " + std::to_string(score);
-        renderText(ren, font, scoreText, 10, 10, white);
+        if (font) {
+            renderText(ren, font, "Shards: " + std::to_string(score), 10, 10, white);
+        }
 
         SDL_RenderPresent(ren);
         SDL_Delay(16);
@@ -559,10 +548,11 @@ int SDL_main(int argc, char* argv[]) {
         }
     }
     
-    TTF_CloseFont(font);
+    if (font) {
+        delete font;
+    }
     SDL_DestroyRenderer(ren);
     SDL_DestroyWindow(win);
-    TTF_Quit();
     SDL_Quit();
     return 0;
 }

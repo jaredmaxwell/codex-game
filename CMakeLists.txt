@@ -7,12 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find SDL2 packages (skip for Emscripten as it has built-in SDL2)
 if(NOT EMSCRIPTEN)
     find_package(SDL2 CONFIG REQUIRED)
-    find_package(SDL2_ttf CONFIG REQUIRED)
     find_package(SDL2_image CONFIG REQUIRED)
 endif()
 
 # Create executable
-add_executable(game src/main.cpp)
+add_executable(game src/main.cpp src/bitmap_font.cpp)
 
 # Link libraries - SDL2main must be linked first
 if(EMSCRIPTEN)
@@ -22,7 +21,6 @@ else()
     target_link_libraries(game 
         SDL2::SDL2main 
         SDL2::SDL2 
-        SDL2_ttf::SDL2_ttf 
         SDL2_image::SDL2_image
     )
 endif()
@@ -51,8 +49,8 @@ elseif(EMSCRIPTEN)
     # WebAssembly specific settings
     set_target_properties(game PROPERTIES
         SUFFIX ".html"
-        COMPILE_FLAGS "-s USE_SDL=2 -s USE_SDL_TTF=2 -s USE_SDL_IMAGE=2"
-        LINK_FLAGS "-s USE_SDL=2 -s USE_SDL_TTF=2 -s USE_SDL_IMAGE=2 -s SDL2_IMAGE_FORMATS='[\"png\"]' -s EXPORTED_FUNCTIONS='[\"_main\"]' -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\"]' -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=64MB -s MAXIMUM_MEMORY=256MB -s DISABLE_EXCEPTION_CATCHING=0 -s USE_WEBGL2=1 -s MIN_WEBGL_VERSION=1 -s MAX_WEBGL_VERSION=2 --shell-file ${CMAKE_SOURCE_DIR}/web/index.html"
+        COMPILE_FLAGS "-s USE_SDL=2 -s USE_SDL_IMAGE=2"
+        LINK_FLAGS "-s USE_SDL=2 -s USE_SDL_IMAGE=2 -s SDL2_IMAGE_FORMATS='[\"png\",\"bmp\"]' -s EXPORTED_FUNCTIONS='[\"_main\"]' -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\"]' -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=64MB -s MAXIMUM_MEMORY=256MB -s DISABLE_EXCEPTION_CATCHING=0 -s USE_WEBGL2=0 -s MIN_WEBGL_VERSION=1 -s MAX_WEBGL_VERSION=1 -s GL_PREINITIALIZED_CONTEXT=0 -s OFFSCREEN_FRAMEBUFFER=1 --shell-file ${CMAKE_SOURCE_DIR}/web/index.html"
     )
     
     # Rename game.html to index.html after build

@@ -96,23 +96,64 @@
         // Modern WebGL context initialization (2024 best practices)
         window.Module = window.Module || {};
         
-        // Ensure proper WebGL context creation before Emscripten starts
+        // Enhanced WebGL context creation with fallbacks
         window.Module.preRun = window.Module.preRun || [];
         window.Module.preRun.push(function() {
             const canvas = document.getElementById('canvas');
             if (canvas) {
-                // Test WebGL support
-                const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                // Test WebGL support with multiple fallbacks
+                let gl = null;
+                const contexts = ['webgl2', 'webgl', 'experimental-webgl'];
+                
+                for (const contextType of contexts) {
+                    try {
+                        gl = canvas.getContext(contextType, {
+                            antialias: false,
+                            depth: false,
+                            stencil: false,
+                            alpha: false,
+                            preserveDrawingBuffer: false,
+                            powerPreference: 'default'
+                        });
+                        if (gl) {
+                            console.log('WebGL context created successfully:', contextType);
+                            break;
+                        }
+                    } catch (e) {
+                        console.warn('Failed to create WebGL context:', contextType, e);
+                    }
+                }
+                
                 if (!gl) {
                     console.error('WebGL not supported in this browser');
-                    document.getElementById('loading').innerHTML = 'WebGL not supported. Please use a modern browser.';
+                    document.getElementById('loading').innerHTML = 'WebGL not supported. Please use a modern browser with WebGL support.';
+                    return;
+                }
+                
+                // Test basic WebGL functionality
+                try {
+                    const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+                    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+                    gl.deleteShader(vertexShader);
+                    gl.deleteShader(fragmentShader);
+                    console.log('WebGL functionality test passed');
+                } catch (e) {
+                    console.error('WebGL functionality test failed:', e);
+                    document.getElementById('loading').innerHTML = 'WebGL functionality test failed. Please try refreshing the page.';
                 }
             }
         });
         
-        // Handle Emscripten runtime errors gracefully
+        // Enhanced error handling for Emscripten
         window.Module.onRuntimeInitialized = function() {
             console.log('Emscripten runtime initialized successfully');
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.innerHTML = 'Game loaded successfully!';
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                }, 1000);
+            }
         };
         
         window.Module.print = function(text) {
@@ -121,25 +162,25 @@
         
         window.Module.printErr = function(text) {
             console.error('Emscripten Error:', text);
+            // Show user-friendly error messages
+            if (text.includes('WebGL') || text.includes('getContext')) {
+                document.getElementById('loading').innerHTML = 'WebGL initialization failed. Please try refreshing the page or use a different browser.';
+            }
         };
         
-        // Hide loading text when game starts
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                const loading = document.getElementById('loading');
-                if (loading) {
-                    loading.style.display = 'none';
-                }
-            }, 2000);
-        });
+        // Handle module loading errors
+        window.Module.onAbort = function(reason) {
+            console.error('Emscripten module aborted:', reason);
+            document.getElementById('loading').innerHTML = 'Game failed to load: ' + reason + '. Please try refreshing the page.';
+        };
         
-        // Handle canvas sizing for mobile
+        // Enhanced canvas sizing for mobile with better touch support
         function resizeCanvas() {
             const canvas = document.getElementById('canvas');
             const container = document.getElementById('game-container');
             
             if (window.innerWidth < 800) {
-                const scale = window.innerWidth / 800;
+                const scale = Math.min(window.innerWidth / 800, window.innerHeight / 600);
                 canvas.style.width = (800 * scale) + 'px';
                 canvas.style.height = (600 * scale) + 'px';
             } else {
@@ -148,8 +189,40 @@
             }
         }
         
+        // Add touch event handling for mobile
+        function setupTouchControls() {
+            const canvas = document.getElementById('canvas');
+            let touchStartX = 0, touchStartY = 0;
+            let isMoving = false;
+            
+            canvas.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                touchStartX = touch.clientX - rect.left;
+                touchStartY = touch.clientY - rect.top;
+                isMoving = false;
+            });
+            
+            canvas.addEventListener('touchmove', function(e) {
+                e.preventDefault();
+                isMoving = true;
+            });
+            
+            canvas.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                if (!isMoving) {
+                    // Single tap - attack
+                    console.log('Attack triggered');
+                }
+            });
+        }
+        
         window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+        window.addEventListener('load', function() {
+            resizeCanvas();
+            setupTouchControls();
+        });
     </script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -std=c++17 $(shell sdl2-config --cflags)
-LDFLAGS = $(shell sdl2-config --libs) -lSDL2_ttf -lSDL2_image
-SRC = src/main.cpp
+LDFLAGS = $(shell sdl2-config --libs) -lSDL2_image
+SRC = src/main.cpp src/bitmap_font.cpp
 
 all: game
 
