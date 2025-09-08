@@ -85,6 +85,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=$SDL2_IMAGE_PREFIX \
           -DCMAKE_PREFIX_PATH=$(brew --prefix) \
+          -DBUILD_SHARED_LIBS=OFF \
           -DSUPPORT_PNG=ON \
           -DSUPPORT_JPG=OFF \
           -DSUPPORT_TIF=OFF \
