@@ -45,6 +45,50 @@ if(WIN32)
             endforeach()
         endif()
     endif()
+elseif(APPLE)
+    # macOS specific settings
+    option(STATIC_SDL2 "Link SDL2 statically on macOS" ON)
+    
+    if(STATIC_SDL2)
+        # Static linking - find static libraries
+        find_library(SDL2_STATIC_LIB SDL2 PATHS ${CMAKE_PREFIX_PATH} PATH_SUFFIXES lib)
+        find_library(SDL2_IMAGE_STATIC_LIB SDL2_image PATHS ${CMAKE_PREFIX_PATH} PATH_SUFFIXES lib)
+        
+        if(SDL2_STATIC_LIB AND SDL2_IMAGE_STATIC_LIB)
+            # Override the imported targets to use static libraries
+            set_target_properties(SDL2::SDL2 PROPERTIES
+                IMPORTED_LOCATION ${SDL2_STATIC_LIB}
+                INTERFACE_LINK_LIBRARIES "-framework Cocoa -framework IOKit -framework CoreVideo -framework CoreAudio -framework AudioToolbox -framework ForceFeedback"
+            )
+            set_target_properties(SDL2_image::SDL2_image PROPERTIES
+                IMPORTED_LOCATION ${SDL2_IMAGE_STATIC_LIB}
+            )
+            message(STATUS "Using static SDL2 libraries on macOS")
+        else()
+            message(WARNING "Static SDL2 libraries not found, falling back to dynamic linking")
+        endif()
+    else()
+        # Dynamic linking - bundle dylib files
+        if(TARGET SDL2::SDL2)
+            get_target_property(SDL2_DYLIB SDL2::SDL2 IMPORTED_LOCATION)
+            if(SDL2_DYLIB)
+                get_filename_component(SDL2_DYLIB_DIR ${SDL2_DYLIB} DIRECTORY)
+                file(GLOB SDL2_DYLIBS "${SDL2_DYLIB_DIR}/*.dylib")
+                foreach(DYLIB ${SDL2_DYLIBS})
+                    add_custom_command(TARGET game POST_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        ${DYLIB} $<TARGET_FILE_DIR:game>)
+                endforeach()
+                
+                # Fix library paths in the executable
+                add_custom_command(TARGET game POST_BUILD
+                    COMMAND install_name_tool -change 
+                    ${SDL2_DYLIB} @executable_path/$(notdir ${SDL2_DYLIB}) 
+                    $<TARGET_FILE:game>
+                    COMMENT "Fixing SDL2 library paths in executable")
+            endif()
+        endif()
+    endif()
 elseif(EMSCRIPTEN)
     # WebAssembly specific settings
     set_target_properties(game PROPERTIES

@@ -2,15 +2,40 @@
 CXX = clang++
 HOMEBREW_PREFIX = $(shell brew --prefix)
 CXXFLAGS = -std=c++17 -I$(HOMEBREW_PREFIX)/include/SDL2 -I$(HOMEBREW_PREFIX)/include
-LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lSDL2 -lSDL2_image -framework Cocoa
 SRC = src/main.cpp src/bitmap_font.cpp
 
-all: game
+# Default to static linking (recommended for distribution)
+STATIC ?= 1
 
-game: $(SRC)
+ifeq ($(STATIC), 1)
+    # Static linking - embeds SDL2 into the executable
+    LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lSDL2 -lSDL2_image -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreAudio -framework AudioToolbox -framework ForceFeedback
+    TARGET = game-static
+    MESSAGE = "Building with static SDL2 linking (recommended for distribution)"
+else
+    # Dynamic linking - requires SDL2 to be installed or bundled
+    LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lSDL2 -lSDL2_image -framework Cocoa
+    TARGET = game
+    MESSAGE = "Building with dynamic SDL2 linking (requires SDL2 to be installed)"
+endif
+
+all: $(TARGET)
+
+$(TARGET): $(SRC)
+	@echo $(MESSAGE)
 	$(CXX) $(CXXFLAGS) -o $@ $(SRC) $(LDFLAGS)
+ifeq ($(STATIC), 0)
+	@echo "Note: For distribution, copy SDL2 dylib files to the same directory as the executable"
+	@echo "Or use 'make static' to build with static linking"
+endif
+
+static:
+	@$(MAKE) STATIC=1
+
+dynamic:
+	@$(MAKE) STATIC=0
 
 clean:
-	rm -f game
+	rm -f game game-static
 
-.PHONY: all clean
+.PHONY: all static dynamic clean
