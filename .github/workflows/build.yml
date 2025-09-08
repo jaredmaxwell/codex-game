@@ -19,14 +19,9 @@ jobs:
         git clone https://github.com/Microsoft/vcpkg.git
         .\vcpkg\bootstrap-vcpkg.bat
     
-    - name: Configure vcpkg binary caching
-      run: |
-        # Set up GitHub Packages as binary cache
-        .\vcpkg\vcpkg.exe config default-provider=ghcr
-        .\vcpkg\vcpkg.exe config --set-asset-sources=clear
-        .\vcpkg\vcpkg.exe config --set-asset-sources=ghcr,readwrite
-    
-    - name: Install dependencies with caching
+    - name: Install dependencies with binary caching
+      env:
+        VCPKG_BINARY_SOURCES: "clear;ghcr,readwrite"
       run: |
         .\vcpkg\vcpkg.exe install --triplet=x64-windows
     
