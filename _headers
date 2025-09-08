@@ -1,10 +1,2 @@
-*.wasm
-  Content-Type: application/wasm
-  Cross-Origin-Embedder-Policy: require-corp
-  Cross-Origin-Opener-Policy: same-origin
-
-*.js
-  Content-Type: application/javascript
-
-*.html
-  Content-Type: text/html
+Cross-Origin-Embedder-Policy: require-corp
+Cross-Origin-Opener-Policy: same-origin

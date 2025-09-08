@@ -109,18 +109,45 @@ jobs:
         echo "EMSDK_PATH=$PWD" >> $GITHUB_ENV
         echo "$PWD" >> $GITHUB_PATH
         
+    - name: Verify Emscripten installation
+      run: |
+        source $EMSDK_PATH/emsdk_env.sh
+        echo "Emscripten version:"
+        emcc --version
+        echo "Emscripten environment:"
+        which emcc
+        which emcmake
+        which emmake
+        
     - name: Build for WebAssembly
       run: |
         source $EMSDK_PATH/emsdk_env.sh
         mkdir build-web
         cd build-web
+        echo "Configuring with Emscripten..."
         emcmake cmake .. -DCMAKE_BUILD_TYPE=Release
+        echo "Building with Emscripten..."
         emmake make -j$(nproc)
+        
+    - name: Verify WebAssembly build
+      run: |
+        source $EMSDK_PATH/emsdk_env.sh
+        cd build-web
+        ls -la
+        echo "Checking if index.html exists:"
+        test -f index.html && echo "✓ index.html found" || echo "✗ index.html missing"
+        echo "Checking if game.js exists:"
+        test -f game.js && echo "✓ game.js found" || echo "✗ game.js missing"
+        echo "Checking if game.wasm exists:"
+        test -f game.wasm && echo "✓ game.wasm found" || echo "✗ game.wasm missing"
+        echo "Checking if assets directory exists:"
+        test -d assets && echo "✓ assets directory found" || echo "✗ assets directory missing"
         
     - name: Create WebAssembly zip
       run: |
         cd build-web
-        zip -r game-web.zip index.html game.js game.wasm assets/ .nojekyll _headers
+        # Create zip with all available files
+        zip -r game-web.zip . -x "*.zip"
         
     - name: Upload WebAssembly build
       uses: actions/upload-artifact@v4
@@ -131,8 +158,23 @@ jobs:
     - name: Copy GitHub Pages config files
       run: |
         cd build-web
-        cp ../.nojekyll .
-        cp ../_headers .
+        # Copy .nojekyll if it exists
+        if [ -f ../.nojekyll ]; then
+          cp ../.nojekyll .
+          echo "✓ Copied .nojekyll"
+        else
+          echo "ℹ .nojekyll not found, creating empty one"
+          touch .nojekyll
+        fi
+        # Copy _headers if it exists
+        if [ -f ../_headers ]; then
+          cp ../_headers .
+          echo "✓ Copied _headers"
+        else
+          echo "ℹ _headers not found, creating basic one"
+          echo "Cross-Origin-Embedder-Policy: require-corp" > _headers
+          echo "Cross-Origin-Opener-Policy: same-origin" >> _headers
+        fi
     
     - name: Upload WebAssembly for Pages
       uses: actions/upload-artifact@v4

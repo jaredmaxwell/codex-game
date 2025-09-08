@@ -96,11 +96,30 @@
         // Modern WebGL context initialization (2024 best practices)
         window.Module = window.Module || {};
         
+        // Configure Emscripten module for better WebGL handling
+        window.Module.canvas = document.getElementById('canvas');
+        window.Module.setCanvasSize = function(width, height) {
+            const canvas = document.getElementById('canvas');
+            if (canvas) {
+                canvas.width = width;
+                canvas.height = height;
+                canvas.style.width = width + 'px';
+                canvas.style.height = height + 'px';
+            }
+        };
+        
         // Enhanced WebGL context creation with fallbacks
         window.Module.preRun = window.Module.preRun || [];
         window.Module.preRun.push(function() {
             const canvas = document.getElementById('canvas');
             if (canvas) {
+                // Ensure canvas is properly initialized
+                if (!canvas.getContext) {
+                    console.error('Canvas getContext method not available');
+                    document.getElementById('loading').innerHTML = 'Canvas not properly initialized. Please refresh the page.';
+                    return;
+                }
+                
                 // Test WebGL support with multiple fallbacks
                 let gl = null;
                 const contexts = ['webgl2', 'webgl', 'experimental-webgl'];
@@ -141,6 +160,9 @@
                     console.error('WebGL functionality test failed:', e);
                     document.getElementById('loading').innerHTML = 'WebGL functionality test failed. Please try refreshing the page.';
                 }
+            } else {
+                console.error('Canvas element not found');
+                document.getElementById('loading').innerHTML = 'Canvas element not found. Please refresh the page.';
             }
         });
         
