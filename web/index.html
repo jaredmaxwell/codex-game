@@ -108,7 +108,7 @@
             }
         };
         
-        // Enhanced WebGL context creation with fallbacks
+        // Enhanced WebGL context creation with fallbacks (2024 best practices)
         window.Module.preRun = window.Module.preRun || [];
         window.Module.preRun.push(function() {
             const canvas = document.getElementById('canvas');
@@ -119,6 +119,12 @@
                     document.getElementById('loading').innerHTML = 'Canvas not properly initialized. Please refresh the page.';
                     return;
                 }
+                
+                // Add WebGL context creation error handler (2024 best practice)
+                canvas.addEventListener('webglcontextcreationerror', function(event) {
+                    console.error('WebGL context creation failed:', event.statusMessage);
+                    document.getElementById('loading').innerHTML = 'Unable to initialize WebGL. Your browser may not support it.';
+                }, false);
                 
                 // Test WebGL support with multiple fallbacks
                 let gl = null;
@@ -132,7 +138,8 @@
                             stencil: false,
                             alpha: false,
                             preserveDrawingBuffer: false,
-                            powerPreference: 'default'
+                            powerPreference: 'default',
+                            failIfMajorPerformanceCaveat: false
                         });
                         if (gl) {
                             console.log('WebGL context created successfully:', contextType);
@@ -166,7 +173,7 @@
             }
         });
         
-        // Enhanced error handling for Emscripten
+        // Enhanced error handling for Emscripten with WebGL context management
         window.Module.onRuntimeInitialized = function() {
             console.log('Emscripten runtime initialized successfully');
             const loading = document.getElementById('loading');
@@ -175,6 +182,24 @@
                 setTimeout(() => {
                     loading.style.display = 'none';
                 }, 1000);
+            }
+            
+            // Add WebGL context loss/restoration handling (2024 best practice)
+            const canvas = document.getElementById('canvas');
+            if (canvas) {
+                canvas.addEventListener('webglcontextlost', function(event) {
+                    console.warn('WebGL context lost');
+                    event.preventDefault();
+                    document.getElementById('loading').innerHTML = 'WebGL context lost. Please refresh the page.';
+                }, false);
+                
+                canvas.addEventListener('webglcontextrestored', function(event) {
+                    console.log('WebGL context restored');
+                    document.getElementById('loading').innerHTML = 'WebGL context restored. Reloading game...';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                }, false);
             }
         };
         

@@ -47,8 +47,19 @@ bool BitmapFont::loadFont(SDL_Renderer* renderer, const char* fontPath) {
     
     // Convert to texture with alpha channel for better rendering
     SDL_SetColorKey(fontSurface, SDL_TRUE, SDL_MapRGB(fontSurface->format, 0, 0, 0));
-    fontTexture = SDL_CreateTextureFromSurface(renderer, fontSurface);
-    SDL_FreeSurface(fontSurface);
+    
+    #ifdef __EMSCRIPTEN__
+    std::cout << "Emscripten: Creating font texture from surface..." << std::endl;
+    #endif
+    
+    try {
+        fontTexture = SDL_CreateTextureFromSurface(renderer, fontSurface);
+        SDL_FreeSurface(fontSurface);
+    } catch (...) {
+        std::cerr << "Exception during font texture creation" << std::endl;
+        SDL_FreeSurface(fontSurface);
+        return false;
+    }
     
     if (!fontTexture) {
         std::cerr << "Failed to create font texture: " << SDL_GetError() << std::endl;

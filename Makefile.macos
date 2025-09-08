@@ -4,19 +4,19 @@ HOMEBREW_PREFIX = $(shell brew --prefix)
 CXXFLAGS = -std=c++17 -I$(HOMEBREW_PREFIX)/include/SDL2 -I$(HOMEBREW_PREFIX)/include
 SRC = src/main.cpp src/bitmap_font.cpp
 
-# Default to static linking (recommended for distribution)
-STATIC ?= 1
+# Default to dynamic linking with bundling (more reliable than static)
+STATIC ?= 0
 
 ifeq ($(STATIC), 1)
-    # Static linking - embeds SDL2 into the executable
-    LDFLAGS = -L$(HOMEBREW_PREFIX)/lib $(HOMEBREW_PREFIX)/lib/libSDL2.a $(HOMEBREW_PREFIX)/lib/libSDL2_image.a -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreAudio -framework AudioToolbox -framework ForceFeedback -framework CoreFoundation -framework Security
+    # Static linking - embeds SDL2 into the executable (experimental)
+    LDFLAGS = -L$(HOMEBREW_PREFIX)/lib $(HOMEBREW_PREFIX)/lib/libSDL2.a $(HOMEBREW_PREFIX)/lib/libSDL2_image.a -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreAudio -framework AudioToolbox -framework ForceFeedback -framework CoreFoundation -framework Security -framework GameController -framework Metal -framework MetalKit -framework QuartzCore -framework ImageIO -framework CoreGraphics -framework CoreServices -framework ApplicationServices -framework Carbon -framework OpenGL -framework IOKit -framework CoreFoundation -framework Security -framework SystemConfiguration -framework Foundation -framework AppKit -framework CoreServices -framework ApplicationServices -framework Carbon -framework OpenGL -framework IOKit -framework CoreFoundation -framework Security -framework SystemConfiguration -framework Foundation -framework AppKit
     TARGET = game
-    MESSAGE = "Building with static SDL2 linking (recommended for distribution)"
+    MESSAGE = "Building with static SDL2 linking (experimental - may have issues)"
 else
-    # Dynamic linking - requires SDL2 to be installed or bundled
+    # Dynamic linking with bundling - copies dylib files and fixes paths
     LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lSDL2 -lSDL2_image -framework Cocoa
     TARGET = game
-    MESSAGE = "Building with dynamic SDL2 linking (requires SDL2 to be installed)"
+    MESSAGE = "Building with dynamic SDL2 linking and bundling (recommended)"
 endif
 
 all: $(TARGET)
@@ -28,11 +28,20 @@ ifeq ($(STATIC), 1)
 	@test -f $(HOMEBREW_PREFIX)/lib/libSDL2.a || (echo "Error: libSDL2.a not found. Install with: brew install sdl2" && exit 1)
 	@test -f $(HOMEBREW_PREFIX)/lib/libSDL2_image.a || (echo "Error: libSDL2_image.a not found. Install with: brew install sdl2_image" && exit 1)
 	@echo "Static libraries found, linking..."
-endif
 	$(CXX) $(CXXFLAGS) -o $@ $(SRC) $(LDFLAGS)
-ifeq ($(STATIC), 0)
-	@echo "Note: For distribution, copy SDL2 dylib files to the same directory as the executable"
-	@echo "Or use 'make static' to build with static linking"
+else
+	@echo "Building with dynamic linking..."
+	$(CXX) $(CXXFLAGS) -o $@ $(SRC) $(LDFLAGS)
+	@echo "Bundling SDL2 libraries..."
+	@cp $(HOMEBREW_PREFIX)/lib/libSDL2*.dylib . 2>/dev/null || echo "No SDL2 dylib files to copy"
+	@echo "Fixing library paths in executable..."
+	@for dylib in libSDL2*.dylib; do \
+		if [ -f "$$dylib" ]; then \
+			install_name_tool -change $(HOMEBREW_PREFIX)/lib/$$dylib @executable_path/$$dylib $@; \
+			echo "Fixed path for $$dylib"; \
+		fi; \
+	done
+	@echo "Dynamic linking with bundling complete!"
 endif
 
 static:
@@ -42,6 +51,6 @@ dynamic:
 	@$(MAKE) STATIC=0
 
 clean:
-	rm -f game
+	rm -f game libSDL2*.dylib
 
 .PHONY: all static dynamic clean

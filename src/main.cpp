@@ -165,6 +165,7 @@ int SDL_main(int argc, char* argv[]) {
 
     SDL_Renderer* ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!ren) {
+        std::cout << "Accelerated renderer failed, trying software renderer..." << std::endl;
         ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_SOFTWARE);
     }
     if (!ren) {
@@ -173,6 +174,28 @@ int SDL_main(int argc, char* argv[]) {
         SDL_Quit();
         return 1;
     }
+    
+    #ifdef __EMSCRIPTEN__
+    std::cout << "Emscripten: SDL renderer created successfully" << std::endl;
+    // Test basic renderer operations (2024 best practice)
+    try {
+        SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
+        SDL_RenderClear(ren);
+        SDL_RenderPresent(ren);
+        std::cout << "Emscripten: Basic renderer operations test passed" << std::endl;
+        
+        // Test texture creation capabilities
+        SDL_Texture* testTexture = SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STATIC, 1, 1);
+        if (testTexture) {
+            SDL_DestroyTexture(testTexture);
+            std::cout << "Emscripten: Texture creation test passed" << std::endl;
+        } else {
+            std::cerr << "Emscripten: Texture creation test failed: " << SDL_GetError() << std::endl;
+        }
+    } catch (...) {
+        std::cerr << "Emscripten: Basic renderer operations test failed - WebGL context issue" << std::endl;
+    }
+    #endif
 
     // Test file system access in Emscripten and determine working path
     const char* workingPath = nullptr;
@@ -228,10 +251,24 @@ int SDL_main(int argc, char* argv[]) {
     
     SDL_Surface* playerSurface = IMG_Load(playerPath);
     if (playerSurface) {
-        playerTexture = SDL_CreateTextureFromSurface(ren, playerSurface);
-        SDL_FreeSurface(playerSurface);
-        if (!playerTexture) {
-            std::cerr << "Failed to create player texture: " << SDL_GetError() << std::endl;
+        std::cout << "Player surface loaded successfully, size: " << playerSurface->w << "x" << playerSurface->h << std::endl;
+        #ifdef __EMSCRIPTEN__
+        std::cout << "Emscripten: Creating player texture from surface..." << std::endl;
+        #endif
+        try {
+            playerTexture = SDL_CreateTextureFromSurface(ren, playerSurface);
+            SDL_FreeSurface(playerSurface);
+            if (!playerTexture) {
+                std::cerr << "Failed to create player texture: " << SDL_GetError() << std::endl;
+                #ifdef __EMSCRIPTEN__
+                std::cerr << "Emscripten: Player texture creation failed - this might be the source of the createImageData error" << std::endl;
+                #endif
+            } else {
+                std::cout << "Player texture created successfully" << std::endl;
+            }
+        } catch (...) {
+            std::cerr << "Exception during player texture creation" << std::endl;
+            SDL_FreeSurface(playerSurface);
         }
     } else {
         std::cout << "Player image not found at " << playerPath << ", using placeholder rectangle" << std::endl;

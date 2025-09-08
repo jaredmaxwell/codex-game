@@ -93,8 +93,8 @@ elseif(EMSCRIPTEN)
     # WebAssembly specific settings
     set_target_properties(game PROPERTIES
         SUFFIX ".html"
-        COMPILE_FLAGS "-s USE_SDL=2 -s USE_SDL_IMAGE=2 -s SDL2_IMAGE_FORMATS='[\"png\",\"bmp\"]'"
-        LINK_FLAGS "-s USE_SDL=2 -s USE_SDL_IMAGE=2 -s SDL2_IMAGE_FORMATS='[\"png\",\"bmp\"]' -s EXPORTED_FUNCTIONS='[\"_main\"]' -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\"]' -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=64MB -s MAXIMUM_MEMORY=256MB -s DISABLE_EXCEPTION_CATCHING=0 -s USE_WEBGL2=1 -s MIN_WEBGL_VERSION=1 -s MAX_WEBGL_VERSION=2 -s GL_PREINITIALIZED_CONTEXT=0 -s OFFSCREEN_FRAMEBUFFER=1 -s LEGACY_GL_EMULATION=0 -s ASSERTIONS=1 -s SAFE_HEAP=0 --preload-file assets@/assets --shell-file ${CMAKE_SOURCE_DIR}/web/index.html"
+        COMPILE_FLAGS "-s USE_SDL=2 -s USE_SDL_IMAGE=2 -s SDL2_IMAGE_FORMATS='[\"png\",\"bmp\"]' -O2"
+        LINK_FLAGS "-s USE_SDL=2 -s USE_SDL_IMAGE=2 -s SDL2_IMAGE_FORMATS='[\"png\",\"bmp\"]' -s EXPORTED_FUNCTIONS='[\"_main\"]' -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\"]' -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=64MB -s MAXIMUM_MEMORY=256MB -s DISABLE_EXCEPTION_CATCHING=0 -s USE_WEBGL2=1 -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s GL_PREINITIALIZED_CONTEXT=0 -s OFFSCREEN_FRAMEBUFFER=0 -s LEGACY_GL_EMULATION=0 -s ASSERTIONS=1 -s SAFE_HEAP=0 -s GL_DEBUG=1 -s USE_PTHREADS=0 -s PTHREAD_POOL_SIZE=0 --preload-file assets@/assets --shell-file ${CMAKE_SOURCE_DIR}/web/index.html"
     )
     
     # Rename game.html to index.html after build
