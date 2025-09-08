@@ -25,12 +25,17 @@ endif
 ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libwebp.a),)
     IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libwebp.a
 endif
+# AVIF library - check multiple possible names
 ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libavif.a),)
     IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libavif.a
+else ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libavif-*.a),)
+    IMAGE_LIBS += $(wildcard $(HOMEBREW_PREFIX)/lib/libavif-*.a)
 endif
-# JPEG XL library (from jpeg-xl package)
+# JPEG XL library - check multiple possible names
 ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libjxl.a),)
     IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libjxl.a
+else ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libjxl-*.a),)
+    IMAGE_LIBS += $(wildcard $(HOMEBREW_PREFIX)/lib/libjxl-*.a)
 endif
 
 # Compression libraries that image formats depend on
@@ -64,6 +69,7 @@ all: $(TARGET)
 minimal: $(SRC)
 	@echo "Building with minimal static linking (fallback mode)"
 	@echo "Using only core SDL2 libraries..."
+	@echo "Note: This build may have limited image format support"
 	$(CXX) $(CXXFLAGS) -o game-minimal $(SRC) \
 		$(HOMEBREW_PREFIX)/lib/libSDL2.a \
 		$(HOMEBREW_PREFIX)/lib/libSDL2_image.a \
@@ -78,6 +84,26 @@ minimal: $(SRC)
 		-framework CoreGraphics -framework ApplicationServices \
 		-framework Security -framework SystemConfiguration -framework AppKit
 	@echo "Minimal build complete!"
+
+# Ultra-minimal build that skips problematic libraries entirely
+ultra-minimal: $(SRC)
+	@echo "Building with ultra-minimal static linking (last resort)"
+	@echo "Using only essential SDL2 libraries..."
+	@echo "Warning: Limited image format support - only PNG/JPEG/TIFF"
+	$(CXX) $(CXXFLAGS) -o game-ultra-minimal $(SRC) \
+		$(HOMEBREW_PREFIX)/lib/libSDL2.a \
+		$(HOMEBREW_PREFIX)/lib/libSDL2_image.a \
+		$(HOMEBREW_PREFIX)/lib/libpng.a \
+		$(HOMEBREW_PREFIX)/lib/libjpeg.a \
+		$(HOMEBREW_PREFIX)/lib/libtiff.a \
+		-framework Cocoa -framework IOKit -framework CoreFoundation \
+		-framework CoreVideo -framework CoreAudio -framework AudioToolbox \
+		-framework CoreHaptics -framework GameController -framework CoreServices \
+		-framework Metal -framework Foundation -framework QuartzCore \
+		-framework ForceFeedback -framework Carbon -framework ImageIO \
+		-framework CoreGraphics -framework ApplicationServices \
+		-framework Security -framework SystemConfiguration -framework AppKit
+	@echo "Ultra-minimal build complete!"
 
 $(TARGET): $(SRC)
 	@echo $(MESSAGE)
@@ -108,4 +134,4 @@ $(TARGET): $(SRC)
 clean:
 	rm -f game
 
-.PHONY: all clean minimal
+.PHONY: all clean minimal ultra-minimal

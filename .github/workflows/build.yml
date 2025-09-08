@@ -66,6 +66,16 @@ jobs:
           echo "Reinstalling zlib to get static library..."
           brew reinstall zlib
         fi
+        # Try building from source if static libraries are still missing
+        echo "Attempting to build from source if static libraries are missing..."
+        if [ ! -f "$(brew --prefix)/lib/libavif.a" ]; then
+          echo "Building libavif from source..."
+          brew install --build-from-source libavif || echo "Failed to build libavif from source"
+        fi
+        if [ ! -f "$(brew --prefix)/lib/libjxl.a" ]; then
+          echo "Building jpeg-xl from source..."
+          brew install --build-from-source jpeg-xl || echo "Failed to build jpeg-xl from source"
+        fi
         
     - name: Debug SDL2 paths and libraries
       run: |
@@ -100,6 +110,15 @@ jobs:
         brew list jpeg-xl 2>/dev/null || echo "  jpeg-xl not installed"
         echo "zlib installation:"
         brew list zlib 2>/dev/null || echo "  zlib not installed"
+        echo "Checking what files are actually installed:"
+        echo "libavif files:"
+        find $(brew --prefix) -name "*avif*" -type f 2>/dev/null | head -10 || echo "  No avif files found"
+        echo "jpeg-xl files:"
+        find $(brew --prefix) -name "*jxl*" -type f 2>/dev/null | head -10 || echo "  No jxl files found"
+        echo "zlib files:"
+        find $(brew --prefix) -name "*z*" -type f 2>/dev/null | grep -E "\.(a|dylib)$" | head -10 || echo "  No zlib files found"
+        echo "All .a files in Homebrew lib directory:"
+        find $(brew --prefix)/lib -name "*.a" 2>/dev/null | grep -E "(avif|jxl|z\.a)" || echo "  No matching .a files found"
         
     - name: Build for macOS
       run: |
@@ -113,8 +132,14 @@ jobs:
             echo "✓ Minimal static build successful"
             mv game-minimal game-macos
           else
-            echo "✗ Both builds failed"
-            exit 1
+            echo "⚠ Minimal build failed, trying ultra-minimal build..."
+            if make -f Makefile.macos ultra-minimal; then
+              echo "✓ Ultra-minimal static build successful"
+              mv game-ultra-minimal game-macos
+            else
+              echo "✗ All builds failed"
+              exit 1
+            fi
           fi
         fi
         chmod +x game-macos
