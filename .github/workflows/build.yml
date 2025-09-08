@@ -19,12 +19,28 @@ jobs:
         git clone https://github.com/Microsoft/vcpkg.git
         .\vcpkg\bootstrap-vcpkg.bat
     
+    - name: Setup NuGet source for GitHub Packages
+      run: |
+        # Check if NuGet is available, install if not
+        if (!(Get-Command nuget -ErrorAction SilentlyContinue)) {
+          echo "NuGet not found, downloading..."
+          Invoke-WebRequest -Uri "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe" -OutFile "nuget.exe"
+          $env:PATH += ";$PWD"
+        }
+        # Add GitHub Packages as NuGet source
+        nuget sources add -name "GitHub" -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" -username "${{ github.actor }}" -password "${{ secrets.GITHUB_TOKEN }}"
+        nuget sources list
+    
     - name: Install dependencies with binary caching
       env:
         VCPKG_BINARY_SOURCES: "clear;nuget,GitHub,readwrite"
         NUGET_CREDENTIALPROVIDERS_PATH: ${{ github.workspace }}\vcpkg\scripts\azure-pipelines
       run: |
-        .\vcpkg\vcpkg.exe install --triplet=x64-windows
+        echo "VCPKG_BINARY_SOURCES: $env:VCPKG_BINARY_SOURCES"
+        echo "Checking vcpkg binary sources configuration..."
+        .\vcpkg\vcpkg.exe config
+        echo "Installing dependencies with verbose output..."
+        .\vcpkg\vcpkg.exe install --triplet=x64-windows --verbose
     
     - name: Build with CMake
       run: |
