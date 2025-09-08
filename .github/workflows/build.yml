@@ -68,12 +68,17 @@ jobs:
         otool -L game-macos || echo "otool failed"
         echo "Checking file type:"
         file game-macos
+        echo "Checking for bundled dylib files:"
+        ls -la libSDL2*.dylib || echo "No dylib files found"
         echo "Checking if executable runs (headless test):"
         SDL_VIDEODRIVER=dummy timeout 5s ./game-macos || echo "Game test completed (timeout or exit is normal)"
         
     - name: Create macOS zip
       run: |
-        zip game-macos.zip game-macos
+        # Include the executable and all dylib files
+        zip game-macos.zip game-macos libSDL2*.dylib
+        echo "Contents of zip file:"
+        unzip -l game-macos.zip
         
     - name: Upload macOS build
       uses: actions/upload-artifact@v4
