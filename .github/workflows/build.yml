@@ -41,56 +41,68 @@ jobs:
     
     - name: Install SDL2 dependencies
       run: |
-        brew install sdl2 sdl2_image
-        # Install image format libraries that SDL2_image depends on
-        brew install libpng libjpeg libtiff webp zstd xz
-        # Install AVIF support
-        brew install libavif
-        # Install JPEG XL support (note: package name is jpeg-xl, not libjxl)
-        brew install jpeg-xl
-        # Install zlib (compression library)
+        # Install SDL2 and basic dependencies
+        brew install sdl2 libpng cmake
+        # Install zlib for PNG support
         brew install zlib
-        # Install additional compression libraries
-        brew install brotli lz4
-        # Force reinstall if static libraries are missing
-        echo "Checking for static libraries and reinstalling if needed..."
-        if [ ! -f "$(brew --prefix)/lib/libavif.a" ]; then
-          echo "Reinstalling libavif to get static library..."
-          brew reinstall libavif
-        fi
-        if [ ! -f "$(brew --prefix)/lib/libjxl.a" ]; then
-          echo "Reinstalling jpeg-xl to get static library..."
-          brew reinstall jpeg-xl
-        fi
-        if [ ! -f "$(brew --prefix)/lib/libz.a" ]; then
-          echo "Reinstalling zlib to get static library..."
-          brew reinstall zlib
-        fi
-        # Try building from source if static libraries are still missing
-        echo "Attempting to build from source if static libraries are missing..."
-        if [ ! -f "$(brew --prefix)/lib/libavif.a" ]; then
-          echo "Building libavif from source..."
-          brew install --build-from-source libavif || echo "Failed to build libavif from source"
-        fi
-        if [ ! -f "$(brew --prefix)/lib/libjxl.a" ]; then
-          echo "Building jpeg-xl from source..."
-          brew install --build-from-source jpeg-xl || echo "Failed to build jpeg-xl from source"
-        fi
+        
+    - name: Build SDL2_image with PNG support only
+      run: |
+        echo "Building SDL2_image from source with PNG support only..."
+        # Create custom installation directory
+        export SDL2_IMAGE_PREFIX=/opt/sdl2_image_png
+        sudo mkdir -p $SDL2_IMAGE_PREFIX
+        
+        # Download SDL2_image source
+        cd /tmp
+        curl -L https://github.com/libsdl-org/SDL_image/releases/download/release-2.8.2/SDL2_image-2.8.2.tar.gz -o SDL2_image-2.8.2.tar.gz
+        tar -xzf SDL2_image-2.8.2.tar.gz
+        cd SDL2_image-2.8.2
+        
+        # Configure with PNG support only
+        mkdir build && cd build
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$SDL2_IMAGE_PREFIX \
+          -DSUPPORT_PNG=ON \
+          -DSUPPORT_JPG=OFF \
+          -DSUPPORT_TIF=OFF \
+          -DSUPPORT_WEBP=OFF \
+          -DSUPPORT_AVIF=OFF \
+          -DSUPPORT_JXL=OFF \
+          -DSUPPORT_BMP=OFF \
+          -DSUPPORT_GIF=OFF \
+          -DSUPPORT_LBM=OFF \
+          -DSUPPORT_PCX=OFF \
+          -DSUPPORT_PNM=OFF \
+          -DSUPPORT_SVG=OFF \
+          -DSUPPORT_TGA=OFF \
+          -DSUPPORT_XCF=OFF \
+          -DSUPPORT_XPM=OFF \
+          -DSUPPORT_XV=OFF \
+          -DUSE_STBIMAGE=OFF
+        
+        # Build and install
+        make -j$(nproc)
+        sudo make install
+        
+        # Set environment variables for the build
+        echo "SDL2_IMAGE_PREFIX=$SDL2_IMAGE_PREFIX" >> $GITHUB_ENV
+        echo "SDL2_IMAGE_LIB=$SDL2_IMAGE_PREFIX/lib" >> $GITHUB_ENV
+        echo "SDL2_IMAGE_INCLUDE=$SDL2_IMAGE_PREFIX/include/SDL2" >> $GITHUB_ENV
+        
+        echo "SDL2_image built with PNG support only to $SDL2_IMAGE_PREFIX"
         
     - name: Debug SDL2 paths and libraries
       run: |
         echo "Homebrew prefix: $(brew --prefix)"
+        echo "Custom SDL2_image prefix: $SDL2_IMAGE_PREFIX"
         echo "SDL2 include path: $(brew --prefix sdl2)/include"
-        echo "SDL2_image include path: $(brew --prefix sdl2_image)/include"
+        echo "Custom SDL2_image include path: $SDL2_IMAGE_INCLUDE"
         echo "Checking for static libraries:"
         ls -la $(brew --prefix)/lib/libSDL2* || echo "No SDL2 libraries found"
-        echo "Checking for dynamic libraries:"
-        ls -la $(brew --prefix)/lib/*SDL2*.dylib || echo "No SDL2 dylib files found"
-        echo "Checking for header files:"
-        find $(brew --prefix) -name "SDL.h" 2>/dev/null || echo "SDL.h not found"
-        find $(brew --prefix) -name "SDL_image.h" 2>/dev/null || echo "SDL_image.h not found"
-        echo "Checking for image format libraries:"
-        for lib in libpng.a libjpeg.a libtiff.a libwebp.a libavif.a libjxl.a libz.a libzstd.a liblzma.a libbrotlidec.a liblz4.a; do
+        echo "Checking for PNG support libraries:"
+        for lib in libpng.a libz.a; do
           if [ -f "$(brew --prefix)/lib/$lib" ]; then
             echo "  ✓ $lib found at $(brew --prefix)/lib/$lib"
           else
@@ -103,22 +115,14 @@ jobs:
             fi
           fi
         done
-        echo "Checking specific library installations:"
-        echo "libavif installation:"
-        brew list libavif 2>/dev/null || echo "  libavif not installed"
-        echo "jpeg-xl installation:"
-        brew list jpeg-xl 2>/dev/null || echo "  jpeg-xl not installed"
-        echo "zlib installation:"
-        brew list zlib 2>/dev/null || echo "  zlib not installed"
-        echo "Checking what files are actually installed:"
-        echo "libavif files:"
-        find $(brew --prefix) -name "*avif*" -type f 2>/dev/null | head -10 || echo "  No avif files found"
-        echo "jpeg-xl files:"
-        find $(brew --prefix) -name "*jxl*" -type f 2>/dev/null | head -10 || echo "  No jxl files found"
-        echo "zlib files:"
-        find $(brew --prefix) -name "*z*" -type f 2>/dev/null | grep -E "\.(a|dylib)$" | head -10 || echo "  No zlib files found"
-        echo "All .a files in Homebrew lib directory:"
-        find $(brew --prefix)/lib -name "*.a" 2>/dev/null | grep -E "(avif|jxl|z\.a)" || echo "  No matching .a files found"
+        echo "Checking Homebrew SDL2_image installation:"
+        ls -la $(brew --prefix)/lib/libSDL2_image* || echo "No Homebrew SDL2_image libraries found"
+        echo "Checking custom SDL2_image installation:"
+        ls -la $SDL2_IMAGE_LIB/libSDL2_image* || echo "No custom SDL2_image libraries found"
+        echo "Checking for header files:"
+        find $(brew --prefix) -name "SDL.h" 2>/dev/null || echo "SDL.h not found"
+        find $SDL2_IMAGE_PREFIX -name "SDL_image.h" 2>/dev/null || echo "Custom SDL_image.h not found"
+        find $(brew --prefix) -name "SDL_image.h" 2>/dev/null || echo "Homebrew SDL_image.h not found"
         
     - name: Build for macOS
       run: |
@@ -132,14 +136,8 @@ jobs:
             echo "✓ Minimal static build successful"
             mv game-minimal game-macos
           else
-            echo "⚠ Minimal build failed, trying ultra-minimal build..."
-            if make -f Makefile.macos ultra-minimal; then
-              echo "✓ Ultra-minimal static build successful"
-              mv game-ultra-minimal game-macos
-            else
-              echo "✗ All builds failed"
-              exit 1
-            fi
+            echo "✗ Both builds failed"
+            exit 1
           fi
         fi
         chmod +x game-macos

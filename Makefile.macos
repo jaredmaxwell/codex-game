@@ -5,58 +5,22 @@ CXXFLAGS = -std=c++17 -I$(HOMEBREW_PREFIX)/include/SDL2 -I$(HOMEBREW_PREFIX)/inc
 SRC = src/main.cpp src/bitmap_font.cpp
 
 # Static linking only - embeds SDL2 into the executable for distribution
-# Build list of available image format libraries
+# PNG-only build - much simpler and more reliable
 IMAGE_LIBS = $(HOMEBREW_PREFIX)/lib/libSDL2.a
-# Use Homebrew SDL2_image
-IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libSDL2_image.a
-
-# Core image format libraries (required)
-ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libpng.a),)
-    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libpng.a
+# Use custom-built SDL2_image with PNG support only (if available)
+ifdef SDL2_IMAGE_LIB
+    IMAGE_LIBS += $(SDL2_IMAGE_LIB)/libSDL2_image.a
+    CXXFLAGS += -I$(SDL2_IMAGE_INCLUDE)
+else
+    # Fallback to Homebrew SDL2_image if custom build not available
+    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libSDL2_image.a
 endif
-ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libjpeg.a),)
-    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libjpeg.a
-endif
-ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libtiff.a),)
-    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libtiff.a
-endif
-
-# Optional image format libraries (may not be available)
-ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libwebp.a),)
-    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libwebp.a
-endif
-# AVIF library - check multiple possible names
-ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libavif.a),)
-    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libavif.a
-else ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libavif-*.a),)
-    IMAGE_LIBS += $(wildcard $(HOMEBREW_PREFIX)/lib/libavif-*.a)
-endif
-# JPEG XL library - check multiple possible names
-ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libjxl.a),)
-    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libjxl.a
-else ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libjxl-*.a),)
-    IMAGE_LIBS += $(wildcard $(HOMEBREW_PREFIX)/lib/libjxl-*.a)
-endif
-
-# Compression libraries that image formats depend on
+# PNG support library
+IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libpng.a
+# Compression library for PNG
 ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libz.a),)
     IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libz.a
-endif
-ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libzstd.a),)
-    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libzstd.a
-endif
-ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/liblzma.a),)
-    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/liblzma.a
-endif
-ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/libbrotlidec.a),)
-    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/libbrotlidec.a
-endif
-ifneq ($(wildcard $(HOMEBREW_PREFIX)/lib/liblz4.a),)
-    IMAGE_LIBS += $(HOMEBREW_PREFIX)/lib/liblz4.a
-endif
-
-# Additional system libraries that might be needed
-ifneq ($(wildcard /usr/lib/libz.a),)
+else ifneq ($(wildcard /usr/lib/libz.a),)
     IMAGE_LIBS += /usr/lib/libz.a
 endif
 LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -L/usr/local/lib -L/opt/homebrew/lib $(IMAGE_LIBS) -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo -framework CoreAudio -framework AudioToolbox -framework CoreHaptics -framework GameController -framework CoreServices -framework Metal -framework Foundation -framework QuartzCore -framework ForceFeedback -framework Carbon -framework ImageIO -framework CoreGraphics -framework ApplicationServices -framework Security -framework SystemConfiguration -framework AppKit
@@ -68,51 +32,50 @@ all: $(TARGET)
 # Fallback build with minimal dependencies (if full static build fails)
 minimal: $(SRC)
 	@echo "Building with minimal static linking (fallback mode)"
-	@echo "Using only core SDL2 libraries..."
-	@echo "Note: This build may have limited image format support"
-	$(CXX) $(CXXFLAGS) -o game-minimal $(SRC) \
-		$(HOMEBREW_PREFIX)/lib/libSDL2.a \
-		$(HOMEBREW_PREFIX)/lib/libSDL2_image.a \
-		$(HOMEBREW_PREFIX)/lib/libpng.a \
-		$(HOMEBREW_PREFIX)/lib/libjpeg.a \
-		$(HOMEBREW_PREFIX)/lib/libtiff.a \
-		-framework Cocoa -framework IOKit -framework CoreFoundation \
-		-framework CoreVideo -framework CoreAudio -framework AudioToolbox \
-		-framework CoreHaptics -framework GameController -framework CoreServices \
-		-framework Metal -framework Foundation -framework QuartzCore \
-		-framework ForceFeedback -framework Carbon -framework ImageIO \
-		-framework CoreGraphics -framework ApplicationServices \
-		-framework Security -framework SystemConfiguration -framework AppKit
+	@echo "Using only SDL2 and PNG support..."
+	@if [ -n "$(SDL2_IMAGE_LIB)" ]; then \
+		echo "Using custom SDL2_image from $(SDL2_IMAGE_LIB)"; \
+		$(CXX) $(CXXFLAGS) -I$(SDL2_IMAGE_INCLUDE) -o game-minimal $(SRC) \
+			$(HOMEBREW_PREFIX)/lib/libSDL2.a \
+			$(SDL2_IMAGE_LIB)/libSDL2_image.a \
+			$(HOMEBREW_PREFIX)/lib/libpng.a \
+			-framework Cocoa -framework IOKit -framework CoreFoundation \
+			-framework CoreVideo -framework CoreAudio -framework AudioToolbox \
+			-framework CoreHaptics -framework GameController -framework CoreServices \
+			-framework Metal -framework Foundation -framework QuartzCore \
+			-framework ForceFeedback -framework Carbon -framework ImageIO \
+			-framework CoreGraphics -framework ApplicationServices \
+			-framework Security -framework SystemConfiguration -framework AppKit; \
+	else \
+		echo "Using Homebrew SDL2_image"; \
+		$(CXX) $(CXXFLAGS) -o game-minimal $(SRC) \
+			$(HOMEBREW_PREFIX)/lib/libSDL2.a \
+			$(HOMEBREW_PREFIX)/lib/libSDL2_image.a \
+			$(HOMEBREW_PREFIX)/lib/libpng.a \
+			-framework Cocoa -framework IOKit -framework CoreFoundation \
+			-framework CoreVideo -framework CoreAudio -framework AudioToolbox \
+			-framework CoreHaptics -framework GameController -framework CoreServices \
+			-framework Metal -framework Foundation -framework QuartzCore \
+			-framework ForceFeedback -framework Carbon -framework ImageIO \
+			-framework CoreGraphics -framework ApplicationServices \
+			-framework Security -framework SystemConfiguration -framework AppKit; \
+	fi
 	@echo "Minimal build complete!"
-
-# Ultra-minimal build that skips problematic libraries entirely
-ultra-minimal: $(SRC)
-	@echo "Building with ultra-minimal static linking (last resort)"
-	@echo "Using only essential SDL2 libraries..."
-	@echo "Warning: Limited image format support - only PNG/JPEG/TIFF"
-	$(CXX) $(CXXFLAGS) -o game-ultra-minimal $(SRC) \
-		$(HOMEBREW_PREFIX)/lib/libSDL2.a \
-		$(HOMEBREW_PREFIX)/lib/libSDL2_image.a \
-		$(HOMEBREW_PREFIX)/lib/libpng.a \
-		$(HOMEBREW_PREFIX)/lib/libjpeg.a \
-		$(HOMEBREW_PREFIX)/lib/libtiff.a \
-		-framework Cocoa -framework IOKit -framework CoreFoundation \
-		-framework CoreVideo -framework CoreAudio -framework AudioToolbox \
-		-framework CoreHaptics -framework GameController -framework CoreServices \
-		-framework Metal -framework Foundation -framework QuartzCore \
-		-framework ForceFeedback -framework Carbon -framework ImageIO \
-		-framework CoreGraphics -framework ApplicationServices \
-		-framework Security -framework SystemConfiguration -framework AppKit
-	@echo "Ultra-minimal build complete!"
 
 $(TARGET): $(SRC)
 	@echo $(MESSAGE)
 	@echo "Checking for static SDL2 libraries..."
 	@test -f $(HOMEBREW_PREFIX)/lib/libSDL2.a || (echo "Error: libSDL2.a not found. Install with: brew install sdl2" && exit 1)
-	@test -f $(HOMEBREW_PREFIX)/lib/libSDL2_image.a || (echo "Error: libSDL2_image.a not found. Install with: brew install sdl2_image" && exit 1)
-	@echo "Checking for available static image format libraries..."
+	@if [ -n "$(SDL2_IMAGE_LIB)" ]; then \
+		echo "Using custom SDL2_image from $(SDL2_IMAGE_LIB)"; \
+		test -f $(SDL2_IMAGE_LIB)/libSDL2_image.a || (echo "Error: Custom libSDL2_image.a not found at $(SDL2_IMAGE_LIB)" && exit 1); \
+	else \
+		echo "Using Homebrew SDL2_image"; \
+		test -f $(HOMEBREW_PREFIX)/lib/libSDL2_image.a || (echo "Error: libSDL2_image.a not found. Install with: brew install sdl2_image" && exit 1); \
+	fi
+	@echo "Checking for PNG support libraries..."
 	@echo "Available libraries:"
-	@for lib in libpng.a libjpeg.a libtiff.a libwebp.a libavif.a libjxl.a libz.a libzstd.a liblzma.a libbrotlidec.a liblz4.a; do \
+	@for lib in libpng.a libz.a; do \
 		if [ -f "$(HOMEBREW_PREFIX)/lib/$$lib" ]; then \
 			echo "  ✓ $$lib"; \
 		else \
@@ -134,4 +97,4 @@ $(TARGET): $(SRC)
 clean:
 	rm -f game
 
-.PHONY: all clean minimal ultra-minimal
+.PHONY: all clean minimal
