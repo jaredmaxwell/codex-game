@@ -474,13 +474,11 @@ void gameLoop() {
     }
 }
 
-int SDL_main(int argc, char* argv[]) {
-    // Initialize random seed
-    srand(time(NULL));
-    
+// SDL initialization function
+bool initializeSDL() {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
-        return 1;
+        return false;
     }
 
     // Initialize SDL_image
@@ -496,8 +494,7 @@ int SDL_main(int argc, char* argv[]) {
                                       SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     if (!g_window) {
         std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
-        SDL_Quit();
-        return 1;
+        return false;
     }
 
     g_renderer = SDL_CreateRenderer(g_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
@@ -507,11 +504,14 @@ int SDL_main(int argc, char* argv[]) {
     }
     if (!g_renderer) {
         std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
-        SDL_DestroyWindow(g_window);
-        SDL_Quit();
-        return 1;
+        return false;
     }
 
+    return true;
+}
+
+// Game initialization function
+void initializeGame() {
     // Load bitmap font
     g_font = new BitmapFont();
     std::cout << "Attempting to load bitmap font..." << std::endl;
@@ -577,19 +577,10 @@ int SDL_main(int argc, char* argv[]) {
     g_score = 0;
     g_magnetEffectEndTime = 0;
     g_quit = false;
+}
 
-    #ifdef __EMSCRIPTEN__
-    // Set up the main loop for Emscripten
-    emscripten_set_main_loop(gameLoop, 0, 1);
-    #else
-    // Standard desktop game loop
-    while (!g_quit) {
-        gameLoop();
-        SDL_Delay(16);
-    }
-    #endif
-
-    // Cleanup
+// Cleanup function
+void cleanup() {
     if (g_playerTexture) {
         SDL_DestroyTexture(g_playerTexture);
     }
@@ -608,23 +599,38 @@ int SDL_main(int argc, char* argv[]) {
     SDL_DestroyWindow(g_window);
     IMG_Quit();
     SDL_Quit();
+}
+
+int SDL_main(int argc, char* argv[]) {
+    // Initialize random seed
+    srand(time(NULL));
+    
+    // Initialize SDL
+    if (!initializeSDL()) {
+        return 1;
+    }
+    
+    // Initialize game
+    initializeGame();
+
+    #ifdef __EMSCRIPTEN__
+    // Set up the main loop for Emscripten
+    emscripten_set_main_loop(gameLoop, 0, 1);
+    #else
+    // Standard desktop game loop
+    while (!g_quit) {
+        gameLoop();
+        SDL_Delay(16);
+    }
+    #endif
+
+    // Cleanup
+    cleanup();
     return 0;
 }
 
 // Platform-specific wrapper main function
-#ifdef __EMSCRIPTEN__
-int main(int argc, char* argv[]) {
-    return SDL_main(argc, argv);
-}
-#endif
-
-#ifdef __APPLE__
-int main(int argc, char* argv[]) {
-    return SDL_main(argc, argv);
-}
-#endif
-
-#ifdef __linux__
+#if defined(__EMSCRIPTEN__) || defined(__APPLE__) || defined(__linux__)
 int main(int argc, char* argv[]) {
     return SDL_main(argc, argv);
 }
