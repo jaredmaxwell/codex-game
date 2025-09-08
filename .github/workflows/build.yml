@@ -242,8 +242,8 @@ jobs:
         
     - name: Create macOS zip
       run: |
-        # Include only the statically linked executable
-        zip game-macos.zip game-macos
+        # Include the statically linked executable and assets folder
+        zip -r game-macos.zip game-macos assets/
         echo "Contents of zip file:"
         unzip -l game-macos.zip
         
@@ -271,7 +271,7 @@ jobs:
         
     - name: Create Linux zip
       run: |
-        zip game-linux.zip game-linux
+        zip -r game-linux.zip game-linux assets/
         
     - name: Upload Linux build
       uses: actions/upload-artifact@v4
