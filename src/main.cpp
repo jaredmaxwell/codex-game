@@ -15,6 +15,7 @@
 // Platform-specific main function handling
 #ifdef __EMSCRIPTEN__
 #define SDL_MAIN_HANDLED
+#include <emscripten.h>
 #endif
 
 #ifdef __APPLE__
@@ -121,21 +122,6 @@ void getShardProperties(int enemyLevel, int& value, SDL_Color& color) {
     }
 }
 
-// Helper function to resolve asset paths for different deployment scenarios
-std::string resolveAssetPath(const std::string& assetName, const char* workingPath = nullptr) {
-    #ifdef __EMSCRIPTEN__
-    if (workingPath) {
-        std::string workingPathStr(workingPath);
-        size_t lastSlash = workingPathStr.find_last_of('/');
-        if (lastSlash != std::string::npos) {
-            return workingPathStr.substr(0, lastSlash + 1) + assetName;
-        } else {
-            return assetName;
-        }
-    }
-    #endif
-    return "assets/" + assetName;
-}
 
 int SDL_main(int argc, char* argv[]) {
     // Initialize random seed
@@ -175,64 +161,14 @@ int SDL_main(int argc, char* argv[]) {
         return 1;
     }
     
-    #ifdef __EMSCRIPTEN__
-    std::cout << "Emscripten: SDL renderer created successfully" << std::endl;
-    // Test basic renderer operations (2024 best practice)
-    try {
-        SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
-        SDL_RenderClear(ren);
-        SDL_RenderPresent(ren);
-        std::cout << "Emscripten: Basic renderer operations test passed" << std::endl;
-        
-        // Test texture creation capabilities
-        SDL_Texture* testTexture = SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STATIC, 1, 1);
-        if (testTexture) {
-            SDL_DestroyTexture(testTexture);
-            std::cout << "Emscripten: Texture creation test passed" << std::endl;
-        } else {
-            std::cerr << "Emscripten: Texture creation test failed: " << SDL_GetError() << std::endl;
-        }
-    } catch (...) {
-        std::cerr << "Emscripten: Basic renderer operations test failed - WebGL context issue" << std::endl;
-    }
-    #endif
-
-    // Test file system access in Emscripten and determine working path
+    // Simple asset path setup
     const char* workingPath = nullptr;
-    
-    #ifdef __EMSCRIPTEN__
-    std::cout << "Emscripten build detected - testing file system access..." << std::endl;
-    // Try different possible paths for GitHub Pages deployment
-    const char* possiblePaths[] = {
-        "assets/dbyte_1x.png",
-        "./assets/dbyte_1x.png",
-        "/codex-game/assets/dbyte_1x.png",
-        "codex-game/assets/dbyte_1x.png"
-    };
-    
-    for (const char* path : possiblePaths) {
-        FILE* testFile = fopen(path, "rb");
-        if (testFile) {
-            std::cout << "File system access successful - " << path << " is accessible" << std::endl;
-            fclose(testFile);
-            workingPath = path;
-            break;
-        } else {
-            std::cout << "File system access failed for " << path << std::endl;
-        }
-    }
-    
-    if (!workingPath) {
-        std::cerr << "All asset paths failed - assets may not be properly deployed" << std::endl;
-    }
-    #endif
 
     // Load bitmap font
     BitmapFont* font = new BitmapFont();
     std::cout << "Attempting to load bitmap font..." << std::endl;
     
-    std::string fontPathStr = resolveAssetPath("dbyte_1x.png", workingPath);
-    const char* fontPath = fontPathStr.c_str();
+    const char* fontPath = "assets/dbyte_1x.png";
     
     if (!font->loadFont(ren, fontPath)) {
         std::cerr << "Failed to load bitmap font - text rendering will be disabled" << std::endl;
@@ -246,38 +182,23 @@ int SDL_main(int argc, char* argv[]) {
     // Load player character image
     SDL_Texture* playerTexture = nullptr;
     
-    std::string playerPathStr = resolveAssetPath("char.png", workingPath);
-    const char* playerPath = playerPathStr.c_str();
+    const char* playerPath = "assets/char.png";
     
     SDL_Surface* playerSurface = IMG_Load(playerPath);
     if (playerSurface) {
-        std::cout << "Player surface loaded successfully, size: " << playerSurface->w << "x" << playerSurface->h << std::endl;
-        #ifdef __EMSCRIPTEN__
-        std::cout << "Emscripten: Creating player texture from surface..." << std::endl;
-        #endif
-        try {
-            playerTexture = SDL_CreateTextureFromSurface(ren, playerSurface);
-            SDL_FreeSurface(playerSurface);
-            if (!playerTexture) {
-                std::cerr << "Failed to create player texture: " << SDL_GetError() << std::endl;
-                #ifdef __EMSCRIPTEN__
-                std::cerr << "Emscripten: Player texture creation failed - this might be the source of the createImageData error" << std::endl;
-                #endif
-            } else {
-                std::cout << "Player texture created successfully" << std::endl;
-            }
-        } catch (...) {
-            std::cerr << "Exception during player texture creation" << std::endl;
-            SDL_FreeSurface(playerSurface);
+        playerTexture = SDL_CreateTextureFromSurface(ren, playerSurface);
+        SDL_FreeSurface(playerSurface);
+        if (!playerTexture) {
+            std::cerr << "Failed to create player texture: " << SDL_GetError() << std::endl;
         }
     } else {
-        std::cout << "Player image not found at " << playerPath << ", using placeholder rectangle" << std::endl;
+        std::cout << "Player image not found, using placeholder rectangle" << std::endl;
     }
 
     // Load enemy textures for each level
     SDL_Texture* enemyTextures[MAX_ENEMY_LEVEL + 1] = {nullptr}; // +1 because levels are 1-based
     for (int level = 1; level <= MAX_ENEMY_LEVEL; level++) {
-        std::string filename = resolveAssetPath("enemy" + std::to_string(level) + ".png", workingPath);
+        std::string filename = "assets/enemy" + std::to_string(level) + ".png";
         
         SDL_Surface* enemySurface = IMG_Load(filename.c_str());
         if (enemySurface) {
@@ -637,7 +558,13 @@ int SDL_main(int argc, char* argv[]) {
         }
 
         SDL_RenderPresent(ren);
+        
+        #ifdef __EMSCRIPTEN__
+        // Use emscripten_sleep for non-blocking delay in web builds
+        emscripten_sleep(16);
+        #else
         SDL_Delay(16);
+        #endif
     }
 
     if (playerTexture) {
