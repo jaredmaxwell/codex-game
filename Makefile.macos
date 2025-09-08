@@ -33,7 +33,7 @@ all: $(TARGET)
 minimal: $(SRC)
 	@echo "Building with minimal static linking (fallback mode)"
 	@echo "Using only SDL2 and PNG support..."
-	@if [ -n "$(SDL2_IMAGE_LIB)" ]; then \
+	@if [ -n "$(SDL2_IMAGE_LIB)" ] && [ -f "$(SDL2_IMAGE_LIB)/libSDL2_image.a" ]; then \
 		echo "Using custom SDL2_image from $(SDL2_IMAGE_LIB)"; \
 		$(CXX) $(CXXFLAGS) -I$(SDL2_IMAGE_INCLUDE) -o game-minimal $(SRC) \
 			$(HOMEBREW_PREFIX)/lib/libSDL2.a \
@@ -47,18 +47,9 @@ minimal: $(SRC)
 			-framework CoreGraphics -framework ApplicationServices \
 			-framework Security -framework SystemConfiguration -framework AppKit; \
 	else \
-		echo "Using Homebrew SDL2_image"; \
-		$(CXX) $(CXXFLAGS) -o game-minimal $(SRC) \
-			$(HOMEBREW_PREFIX)/lib/libSDL2.a \
-			$(HOMEBREW_PREFIX)/lib/libSDL2_image.a \
-			$(HOMEBREW_PREFIX)/lib/libpng.a \
-			-framework Cocoa -framework IOKit -framework CoreFoundation \
-			-framework CoreVideo -framework CoreAudio -framework AudioToolbox \
-			-framework CoreHaptics -framework GameController -framework CoreServices \
-			-framework Metal -framework Foundation -framework QuartzCore \
-			-framework ForceFeedback -framework Carbon -framework ImageIO \
-			-framework CoreGraphics -framework ApplicationServices \
-			-framework Security -framework SystemConfiguration -framework AppKit; \
+		echo "Error: Custom SDL2_image not found at $(SDL2_IMAGE_LIB)"; \
+		echo "The custom PNG-only SDL2_image build must succeed for static linking to work."; \
+		exit 1; \
 	fi
 	@echo "Minimal build complete!"
 
@@ -66,12 +57,12 @@ $(TARGET): $(SRC)
 	@echo $(MESSAGE)
 	@echo "Checking for static SDL2 libraries..."
 	@test -f $(HOMEBREW_PREFIX)/lib/libSDL2.a || (echo "Error: libSDL2.a not found. Install with: brew install sdl2" && exit 1)
-	@if [ -n "$(SDL2_IMAGE_LIB)" ]; then \
+	@if [ -n "$(SDL2_IMAGE_LIB)" ] && [ -f "$(SDL2_IMAGE_LIB)/libSDL2_image.a" ]; then \
 		echo "Using custom SDL2_image from $(SDL2_IMAGE_LIB)"; \
-		test -f $(SDL2_IMAGE_LIB)/libSDL2_image.a || (echo "Error: Custom libSDL2_image.a not found at $(SDL2_IMAGE_LIB)" && exit 1); \
 	else \
-		echo "Using Homebrew SDL2_image"; \
-		test -f $(HOMEBREW_PREFIX)/lib/libSDL2_image.a || (echo "Error: libSDL2_image.a not found. Install with: brew install sdl2_image" && exit 1); \
+		echo "Error: Custom SDL2_image not found at $(SDL2_IMAGE_LIB)"; \
+		echo "The custom PNG-only SDL2_image build must succeed for static linking to work."; \
+		exit 1; \
 	fi
 	@echo "Checking for PNG support libraries..."
 	@echo "Available libraries:"

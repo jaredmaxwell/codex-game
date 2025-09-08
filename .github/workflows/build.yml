@@ -84,6 +84,7 @@ jobs:
         cmake .. \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=$SDL2_IMAGE_PREFIX \
+          -DCMAKE_PREFIX_PATH=$(brew --prefix) \
           -DSUPPORT_PNG=ON \
           -DSUPPORT_JPG=OFF \
           -DSUPPORT_TIF=OFF \
@@ -100,11 +101,40 @@ jobs:
           -DSUPPORT_XCF=OFF \
           -DSUPPORT_XPM=OFF \
           -DSUPPORT_XV=OFF \
-          -DUSE_STBIMAGE=OFF
+          -DUSE_STBIMAGE=OFF \
+          -DPNG_FOUND=ON \
+          -DPNG_LIBRARIES=$(brew --prefix)/lib/libpng.a \
+          -DPNG_INCLUDE_DIRS=$(brew --prefix)/include
         
         # Build and install
-        make -j$(nproc)
-        sudo make install
+        echo "Building SDL2_image..."
+        if make -j$(nproc); then
+          echo "✓ SDL2_image build successful"
+        else
+          echo "✗ SDL2_image build failed"
+          echo "Build output:"
+          make 2>&1 | tail -20
+          exit 1
+        fi
+        
+        echo "Installing SDL2_image..."
+        if sudo make install; then
+          echo "✓ SDL2_image installation successful"
+        else
+          echo "✗ SDL2_image installation failed"
+          exit 1
+        fi
+        
+        # Verify the installation
+        if [ -f "$SDL2_IMAGE_PREFIX/lib/libSDL2_image.a" ]; then
+          echo "✓ Custom libSDL2_image.a found at $SDL2_IMAGE_PREFIX/lib/"
+          ls -la "$SDL2_IMAGE_PREFIX/lib/libSDL2_image.a"
+        else
+          echo "✗ Custom libSDL2_image.a NOT found at $SDL2_IMAGE_PREFIX/lib/"
+          echo "Contents of $SDL2_IMAGE_PREFIX/lib/:"
+          ls -la "$SDL2_IMAGE_PREFIX/lib/" || echo "Directory does not exist"
+          exit 1
+        fi
         
         # Set environment variables for the build
         echo "SDL2_IMAGE_PREFIX=$SDL2_IMAGE_PREFIX" >> $GITHUB_ENV
