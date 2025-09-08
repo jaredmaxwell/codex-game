@@ -15,7 +15,6 @@
 // Platform-specific main function handling
 #ifdef __EMSCRIPTEN__
 #define SDL_MAIN_HANDLED
-#include <emscripten.h>
 #endif
 
 #ifdef __APPLE__
@@ -558,13 +557,7 @@ int SDL_main(int argc, char* argv[]) {
         }
 
         SDL_RenderPresent(ren);
-        
-        #ifdef __EMSCRIPTEN__
-        // Use emscripten_sleep for non-blocking delay in web builds
-        emscripten_sleep(16);
-        #else
         SDL_Delay(16);
-        #endif
     }
 
     if (playerTexture) {
