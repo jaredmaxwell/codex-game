@@ -121,6 +121,22 @@ void getShardProperties(int enemyLevel, int& value, SDL_Color& color) {
     }
 }
 
+// Helper function to resolve asset paths for different deployment scenarios
+std::string resolveAssetPath(const std::string& assetName, const char* workingPath = nullptr) {
+    #ifdef __EMSCRIPTEN__
+    if (workingPath) {
+        std::string workingPathStr(workingPath);
+        size_t lastSlash = workingPathStr.find_last_of('/');
+        if (lastSlash != std::string::npos) {
+            return workingPathStr.substr(0, lastSlash + 1) + assetName;
+        } else {
+            return assetName;
+        }
+    }
+    #endif
+    return "assets/" + assetName;
+}
+
 int SDL_main(int argc, char* argv[]) {
     // Initialize random seed
     srand(time(NULL));
@@ -161,19 +177,40 @@ int SDL_main(int argc, char* argv[]) {
     // Test file system access in Emscripten
     #ifdef __EMSCRIPTEN__
     std::cout << "Emscripten build detected - testing file system access..." << std::endl;
-    FILE* testFile = fopen("assets/dbyte_1x.png", "rb");
-    if (testFile) {
-        std::cout << "File system access successful - assets/dbyte_1x.png is accessible" << std::endl;
-        fclose(testFile);
-    } else {
-        std::cerr << "File system access failed - assets/dbyte_1x.png is not accessible" << std::endl;
+    // Try different possible paths for GitHub Pages deployment
+    const char* possiblePaths[] = {
+        "assets/dbyte_1x.png",
+        "./assets/dbyte_1x.png",
+        "/codex-game/assets/dbyte_1x.png",
+        "codex-game/assets/dbyte_1x.png"
+    };
+    
+    const char* workingPath = nullptr;
+    for (const char* path : possiblePaths) {
+        FILE* testFile = fopen(path, "rb");
+        if (testFile) {
+            std::cout << "File system access successful - " << path << " is accessible" << std::endl;
+            fclose(testFile);
+            workingPath = path;
+            break;
+        } else {
+            std::cout << "File system access failed for " << path << std::endl;
+        }
+    }
+    
+    if (!workingPath) {
+        std::cerr << "All asset paths failed - assets may not be properly deployed" << std::endl;
     }
     #endif
 
     // Load bitmap font
     BitmapFont* font = new BitmapFont();
     std::cout << "Attempting to load bitmap font..." << std::endl;
-    if (!font->loadFont(ren, "assets/dbyte_1x.png")) {
+    
+    std::string fontPathStr = resolveAssetPath("dbyte_1x.png", workingPath);
+    const char* fontPath = fontPathStr.c_str();
+    
+    if (!font->loadFont(ren, fontPath)) {
         std::cerr << "Failed to load bitmap font - text rendering will be disabled" << std::endl;
         std::cerr << "Renderer info: " << (ren ? "valid" : "null") << std::endl;
         delete font;
@@ -184,7 +221,11 @@ int SDL_main(int argc, char* argv[]) {
 
     // Load player character image
     SDL_Texture* playerTexture = nullptr;
-    SDL_Surface* playerSurface = IMG_Load("assets/char.png");
+    
+    std::string playerPathStr = resolveAssetPath("char.png", workingPath);
+    const char* playerPath = playerPathStr.c_str();
+    
+    SDL_Surface* playerSurface = IMG_Load(playerPath);
     if (playerSurface) {
         playerTexture = SDL_CreateTextureFromSurface(ren, playerSurface);
         SDL_FreeSurface(playerSurface);
@@ -192,13 +233,14 @@ int SDL_main(int argc, char* argv[]) {
             std::cerr << "Failed to create player texture: " << SDL_GetError() << std::endl;
         }
     } else {
-        std::cout << "Player image not found, using placeholder rectangle" << std::endl;
+        std::cout << "Player image not found at " << playerPath << ", using placeholder rectangle" << std::endl;
     }
 
     // Load enemy textures for each level
     SDL_Texture* enemyTextures[MAX_ENEMY_LEVEL + 1] = {nullptr}; // +1 because levels are 1-based
     for (int level = 1; level <= MAX_ENEMY_LEVEL; level++) {
-        std::string filename = "assets/enemy" + std::to_string(level) + ".png";
+        std::string filename = resolveAssetPath("enemy" + std::to_string(level) + ".png", workingPath);
+        
         SDL_Surface* enemySurface = IMG_Load(filename.c_str());
         if (enemySurface) {
             enemyTextures[level] = SDL_CreateTextureFromSurface(ren, enemySurface);
