@@ -42,6 +42,8 @@ jobs:
     - name: Install SDL2 dependencies
       run: |
         brew install sdl2 sdl2_image
+        # Install image format libraries that SDL2_image depends on
+        brew install libpng libjpeg libtiff webp libavif libjxl
         
     - name: Debug SDL2 paths and libraries
       run: |
