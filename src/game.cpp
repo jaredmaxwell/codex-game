@@ -25,7 +25,7 @@ const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
 
 // Spatial partitioning constants
-const int GRID_CELL_SIZE = 64; // Size of each grid cell
+const int GRID_CELL_SIZE = 500; // Size of each grid cell (world size / grid size)
 const int MAX_GRID_WIDTH = 32; // Maximum grid width (world width / cell size)
 const int MAX_GRID_HEIGHT = 32; // Maximum grid height (world height / cell size)
 
@@ -95,6 +95,40 @@ void updateSpatialGrid() {
             addEnemyToGrid(i);
         }
     }
+}
+
+// Get nearby enemies from spatial grid for collision avoidance
+std::vector<int> getNearbyEnemies(int centerX, int centerY, int currentEnemyIndex, int searchRadius = GRID_CELL_SIZE) {
+    std::vector<int> nearbyEnemies;
+    
+    // Calculate grid bounds to search
+    int minGridX = (centerX - searchRadius) / GRID_CELL_SIZE;
+    int maxGridX = (centerX + searchRadius) / GRID_CELL_SIZE;
+    int minGridY = (centerY - searchRadius) / GRID_CELL_SIZE;
+    int maxGridY = (centerY + searchRadius) / GRID_CELL_SIZE;
+    
+    // Clamp to grid bounds
+    minGridX = std::max(0, minGridX);
+    maxGridX = std::min(g_gridWidth - 1, maxGridX);
+    minGridY = std::max(0, minGridY);
+    maxGridY = std::min(g_gridHeight - 1, maxGridY);
+    
+    // Check all grid cells in the search area
+    for (int gridY = minGridY; gridY <= maxGridY; gridY++) {
+        for (int gridX = minGridX; gridX <= maxGridX; gridX++) {
+            int gridIndex = gridY * g_gridWidth + gridX;
+            if (gridIndex >= 0 && gridIndex < g_gridWidth * g_gridHeight) {
+                // Add all enemies from this grid cell, excluding the current enemy
+                for (int enemyIndex : g_spatialGrid[gridIndex].enemyIndices) {
+                    if (enemyIndex != currentEnemyIndex) {
+                        nearbyEnemies.push_back(enemyIndex);
+                    }
+                }
+            }
+        }
+    }
+    
+    return nearbyEnemies;
 }
 
 
@@ -265,10 +299,19 @@ void GameScene::update() {
     // Update spatial partitioning grid first
     updateSpatialGrid();
     
-    // Update all enemies
+    // Update all enemies with spatial partitioning
     for (size_t i = 0; i < g_enemies.size(); i++) {
         if (g_enemies[i].isActive()) {
-            g_enemies[i].update(g_player, g_enemies, g_worldWidth, g_worldHeight, currentTime);
+            // Get nearby enemies for this enemy using spatial partitioning
+            int centerX = g_enemies[i].getCenterX();
+            int centerY = g_enemies[i].getCenterY();
+            std::vector<int> nearbyEnemies = getNearbyEnemies(centerX, centerY, i, GRID_CELL_SIZE * 2);
+            
+            // Spatial partitioning is working - no debug output needed
+            
+            // Update enemy with spatial partitioning
+            g_enemies[i].updateWithSpatialPartitioning(g_player, g_enemies, g_worldWidth, g_worldHeight, 
+                                                      currentTime, nearbyEnemies);
         }
     }
     

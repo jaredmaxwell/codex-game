@@ -2,6 +2,7 @@
 #include "player.h"
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 
 Enemy::Enemy() 
     : m_x(0), m_y(0), m_speed(DEFAULT_SPEED), m_active(false), m_level(1), 
@@ -33,6 +34,25 @@ void Enemy::update(const Player& player, const std::vector<Enemy>& enemies,
         // Normal movement and collision avoidance
         moveTowardsPlayer(player);
         applyCollisionAvoidance(enemies);
+    }
+    
+    // Check world bounds
+    checkWorldBounds(worldWidth, worldHeight);
+}
+
+void Enemy::updateWithSpatialPartitioning(const Player& player, const std::vector<Enemy>& enemies,
+                                         int worldWidth, int worldHeight, Uint32 currentTime,
+                                         const std::vector<int>& nearbyEnemyIndices) {
+    if (!m_active) return;
+    
+    // Handle knockback
+    if (isInKnockback(currentTime)) {
+        m_x += m_knockbackX * 0.1f; // Apply knockback gradually
+        m_y += m_knockbackY * 0.1f;
+    } else {
+        // Normal movement and collision avoidance with spatial partitioning
+        moveTowardsPlayer(player);
+        applyCollisionAvoidanceWithSpatialPartitioning(enemies, nearbyEnemyIndices);
     }
     
     // Check world bounds
@@ -114,31 +134,61 @@ void Enemy::applyCollisionAvoidance(const std::vector<Enemy>& enemies) {
     m_y += avoidY;
 }
 
+void Enemy::applyCollisionAvoidanceWithSpatialPartitioning(const std::vector<Enemy>& enemies, 
+                                                          const std::vector<int>& nearbyEnemyIndices) {
+    float avoidX = 0, avoidY = 0;
+    
+    // Only check nearby enemies instead of all enemies
+    for (int enemyIndex : nearbyEnemyIndices) {
+        if (enemyIndex >= 0 && enemyIndex < enemies.size()) {
+            const Enemy& other = enemies[enemyIndex];
+            if (!other.m_active || &other == this) continue;
+            
+            calculateAvoidanceForce(other, avoidX, avoidY);
+        }
+    }
+    
+    // Apply avoidance forces
+    m_x += avoidX;
+    m_y += avoidY;
+}
+
 void Enemy::calculateAvoidanceForce(const Enemy& other, float& avoidX, float& avoidY) const {
-    int otherSize = other.getSize();
+    // Cache center positions and sizes to avoid multiple function calls
+    int myCenterX = getCenterX();
+    int myCenterY = getCenterY();
+    int mySize = getSize();
     int otherCenterX = other.getCenterX();
     int otherCenterY = other.getCenterY();
+    int otherSize = other.getSize();
     
-    // Calculate distance between centers
-    float dx_dist = getCenterX() - otherCenterX;
-    float dy_dist = getCenterY() - otherCenterY;
-    float dist = sqrt(dx_dist * dx_dist + dy_dist * dy_dist);
+    // Calculate squared distance (avoid expensive sqrt)
+    float dx_dist = myCenterX - otherCenterX;
+    float dy_dist = myCenterY - otherCenterY;
+    float distSquared = dx_dist * dx_dist + dy_dist * dy_dist;
     
-    // Calculate minimum distance (sum of radii)
-    float minDistance = (getSize() + otherSize) / 2.0f + MIN_DISTANCE;
+    // Calculate minimum distance squared (sum of radii)
+    float minDistance = (mySize + otherSize) / 2.0f + MIN_DISTANCE;
+    float minDistanceSquared = minDistance * minDistance;
     
-    if (dist < minDistance && dist > 0) {
-        // Calculate avoidance force
-        float avoidanceForce = SEPARATION_FORCE * (minDistance - dist) / minDistance;
-        
-        // Normalize direction
-        dx_dist /= dist;
-        dy_dist /= dist;
-        
-        // Add to avoidance forces
-        avoidX += dx_dist * avoidanceForce;
-        avoidY += dy_dist * avoidanceForce;
+    // Early exit if too far apart (using squared distance)
+    if (distSquared >= minDistanceSquared || distSquared == 0) {
+        return;
     }
+    
+    // Only now calculate actual distance for force calculation
+    float dist = sqrt(distSquared);
+    
+    // Calculate avoidance force
+    float avoidanceForce = SEPARATION_FORCE * (minDistance - dist) / minDistance;
+    
+    // Normalize direction (avoid division by zero)
+    dx_dist /= dist;
+    dy_dist /= dist;
+    
+    // Add to avoidance forces
+    avoidX += dx_dist * avoidanceForce;
+    avoidY += dy_dist * avoidanceForce;
 }
 
 void Enemy::checkWorldBounds(int worldWidth, int worldHeight) {

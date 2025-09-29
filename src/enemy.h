@@ -17,6 +17,11 @@ public:
     void update(const Player& player, const std::vector<Enemy>& enemies, 
                 int worldWidth, int worldHeight, Uint32 currentTime);
     
+    // Update with spatial partitioning for better performance
+    void updateWithSpatialPartitioning(const Player& player, const std::vector<Enemy>& enemies,
+                                     int worldWidth, int worldHeight, Uint32 currentTime,
+                                     const std::vector<int>& nearbyEnemyIndices);
+    
     // Render the enemy
     void render(SDL_Renderer* renderer, SDL_Texture* texture, int cameraOffsetX, int cameraOffsetY) const;
     
@@ -56,8 +61,8 @@ public:
     static constexpr int KNOCKBACK_DURATION = 200; // milliseconds
     
     // Game-wide enemy constants
-    static constexpr int MAX_ENEMIES = 200;
-    static constexpr int ENEMY_SPAWN_RATE = 500; // milliseconds between spawns
+    static constexpr int MAX_ENEMIES = 500; // Increased for stress testing
+    static constexpr int ENEMY_SPAWN_RATE = 50; // milliseconds between spawns (10x faster for stress testing)
     static constexpr int MAX_ENEMY_LEVEL = 10;
     
     // Helper functions
@@ -87,4 +92,6 @@ private:
     
     // Collision avoidance helpers
     void calculateAvoidanceForce(const Enemy& other, float& avoidX, float& avoidY) const;
+    void applyCollisionAvoidanceWithSpatialPartitioning(const std::vector<Enemy>& enemies, 
+                                                       const std::vector<int>& nearbyEnemyIndices);
 };
