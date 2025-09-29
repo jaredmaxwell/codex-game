@@ -5,13 +5,14 @@
 
 Enemy::Enemy() 
     : m_x(0), m_y(0), m_speed(DEFAULT_SPEED), m_active(false), m_level(1), 
-      m_spawnTime(0), m_knockbackX(0), m_knockbackY(0), m_knockbackEndTime(0) {
+      m_originalLevel(1), m_spawnTime(0), m_knockbackX(0), m_knockbackY(0), m_knockbackEndTime(0) {
 }
 
 void Enemy::initialize(int x, int y, int level, float speed, Uint32 spawnTime) {
     m_x = x;
     m_y = y;
     m_level = level;
+    m_originalLevel = level;
     m_speed = speed;
     m_spawnTime = spawnTime;
     m_active = true;
@@ -162,16 +163,16 @@ int Enemy::getEnemyCenterY(int enemyY, int enemySize) {
 }
 
 void Enemy::getShardProperties(int& value, SDL_Color& color) const {
-    if (m_level >= 8) {
+    if (m_originalLevel >= 8) {
         value = 25;
         color = {128, 0, 128, 255}; // Purple
-    } else if (m_level >= 6) {
+    } else if (m_originalLevel >= 6) {
         value = 20;
         color = {0, 0, 255, 255}; // Blue
-    } else if (m_level >= 4) {
+    } else if (m_originalLevel >= 4) {
         value = 15;
         color = {0, 255, 0, 255}; // Green
-    } else if (m_level >= 2) {
+    } else if (m_originalLevel >= 2) {
         value = 10;
         color = {255, 165, 0, 255}; // Orange
     } else {

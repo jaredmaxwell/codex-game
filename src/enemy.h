@@ -27,6 +27,7 @@ public:
     int getCenterY() const { return m_y + getSize() / 2; }
     int getSize() const { return BASE_SIZE + (m_level - 1) * 2; }
     int getLevel() const { return m_level; }
+    int getOriginalLevel() const { return m_originalLevel; }
     bool isActive() const { return m_active; }
     SDL_Rect getRect() const { return {m_x, m_y, getSize(), getSize()}; }
     
@@ -72,6 +73,7 @@ private:
     // State
     bool m_active;
     int m_level;
+    int m_originalLevel;
     Uint32 m_spawnTime;
     
     // Knockback system
