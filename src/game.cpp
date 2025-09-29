@@ -2,6 +2,7 @@
 #include "bitmap_font.h"
 #include "player.h"
 #include "enemy.h"
+#include "item.h"
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
@@ -21,50 +22,16 @@
 // Game constants
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
-const int ENEMY_BASE_SIZE = 12;
-const float ENEMY_SPEED = 1.5f;
-const int MAX_ENEMIES = 200; // Increased for hundreds of enemies
-const int ENEMY_SPAWN_RATE = 500; // milliseconds between spawns (faster for testing)
-const int MAX_ENEMY_LEVEL = 10;
-const float ENEMY_KNOCKBACK_DISTANCE = 2.0f; // multiplier of enemy size
-const int SHARD_SIZE = 8;
-const int MAX_SHARDS = 50;
-const int SHARD_LIFETIME = 10000; // milliseconds
-const int MAGNET_SIZE = 12;
-const int MAX_MAGNETS = 5;
-const int MAGNET_LIFETIME = 15000; // milliseconds
-const int MAGNET_DROP_CHANCE = 1; // 1 in 100 chance
 
 // Spatial partitioning constants
 const int GRID_CELL_SIZE = 64; // Size of each grid cell
 const int MAX_GRID_WIDTH = 32; // Maximum grid width (world width / cell size)
 const int MAX_GRID_HEIGHT = 32; // Maximum grid height (world height / cell size)
 
-// Enemy collision constants
-const float ENEMY_SEPARATION_FORCE = 2.0f; // Force applied to separate overlapping enemies (increased)
-const float ENEMY_MIN_DISTANCE = 3.0f; // Minimum distance enemies try to maintain (increased)
 
 // Enemy class is now defined in enemy.h
 
-struct Shard {
-    int x, y;
-    bool active;
-    Uint32 spawnTime;
-    int value;
-    SDL_Color color;
-};
 
-struct Magnet {
-    int x, y;
-    bool active;
-    Uint32 spawnTime;
-};
-
-// Helper functions for center calculations
-int getShardCenterX(const Shard& shard) { return shard.x + SHARD_SIZE / 2; }
-int getShardCenterY(const Shard& shard) { return shard.y + SHARD_SIZE / 2; }
-int getEnemyCenterX(int enemyX, int enemySize) { return enemyX + enemySize / 2; }
-int getEnemyCenterY(int enemyY, int enemySize) { return enemyY + enemySize / 2; }
 
 // Spatial partitioning grid
 struct GridCell {
@@ -74,11 +41,10 @@ struct GridCell {
 // Game state variables
 static BitmapFont* g_font = nullptr;
 static SDL_Texture* g_playerTexture = nullptr;
-static SDL_Texture* g_enemyTextures[MAX_ENEMY_LEVEL + 1] = {nullptr};
+static SDL_Texture* g_enemyTextures[Enemy::MAX_ENEMY_LEVEL + 1] = {nullptr};
 static Player g_player;
 static std::vector<Enemy> g_enemies;
-static Shard g_shards[MAX_SHARDS];
-static Magnet g_magnets[MAX_MAGNETS];
+static Item g_items[Item::MAX_SHARDS + Item::MAX_MAGNETS];
 static Uint32 g_lastEnemySpawn = 0;
 static int g_score = 0;
 static Uint32 g_magnetEffectEndTime = 0;
@@ -92,10 +58,6 @@ static int g_gridHeight = 0;
 static int g_worldWidth = 0;
 static int g_worldHeight = 0;
 
-// Helper functions
-int getEnemySize(int level) {
-    return ENEMY_BASE_SIZE + (level - 1) * 2;
-}
 
 // Spatial partitioning helper functions
 void clearSpatialGrid() {
@@ -175,7 +137,7 @@ GameScene::~GameScene() {
         SDL_DestroyTexture(g_playerTexture);
     }
     
-    for (int level = 1; level <= MAX_ENEMY_LEVEL; level++) {
+    for (int level = 1; level <= Enemy::MAX_ENEMY_LEVEL; level++) {
         if (g_enemyTextures[level]) {
             SDL_DestroyTexture(g_enemyTextures[level]);
         }
@@ -227,7 +189,7 @@ bool GameScene::initialize(SDL_Renderer* renderer) {
     }
 
     // Load enemy textures for each level
-    for (int level = 1; level <= MAX_ENEMY_LEVEL; level++) {
+    for (int level = 1; level <= Enemy::MAX_ENEMY_LEVEL; level++) {
         std::string filename = "assets/enemy" + std::to_string(level) + ".png";
         
         SDL_Surface* enemySurface = IMG_Load(filename.c_str());
@@ -244,16 +206,11 @@ bool GameScene::initialize(SDL_Renderer* renderer) {
     
     // Initialize enemies vector (reserve space for efficiency)
     g_enemies.clear();
-    g_enemies.reserve(MAX_ENEMIES);
+    g_enemies.reserve(Enemy::MAX_ENEMIES);
     
-    // Initialize shards array
-    for (int i = 0; i < MAX_SHARDS; i++) {
-        g_shards[i] = {0, 0, false, 0, 5, {255, 255, 0, 255}}; // Default yellow shard
-    }
-    
-    // Initialize magnets array
-    for (int i = 0; i < MAX_MAGNETS; i++) {
-        g_magnets[i] = {0, 0, false, 0};
+    // Initialize items array
+    for (int i = 0; i < Item::MAX_SHARDS + Item::MAX_MAGNETS; i++) {
+        g_items[i] = Item(); // Default inactive item
     }
     
     g_lastEnemySpawn = 0;
@@ -327,10 +284,10 @@ void GameScene::update() {
 
     // Enemy spawning
     Uint32 currentTime = SDL_GetTicks();
-    if (currentTime - g_lastEnemySpawn > ENEMY_SPAWN_RATE && g_enemies.size() < MAX_ENEMIES) {
+    if (currentTime - g_lastEnemySpawn > Enemy::ENEMY_SPAWN_RATE && g_enemies.size() < Enemy::MAX_ENEMIES) {
         // Calculate enemy level based on player's shard count
         int enemyLevel = 1 + (g_score / 10); // Every 10 shards increases enemy level by 1
-        if (enemyLevel > MAX_ENEMY_LEVEL) enemyLevel = MAX_ENEMY_LEVEL;
+        if (enemyLevel > Enemy::MAX_ENEMY_LEVEL) enemyLevel = Enemy::MAX_ENEMY_LEVEL;
         
         // Get current camera viewport bounds
         SDL_Rect viewport = m_camera.getViewport();
@@ -341,7 +298,7 @@ void GameScene::update() {
         
         // Randomly choose which edge to spawn from
         int edge = rand() % 4;
-        int enemySize = Enemy::BASE_SIZE + (enemyLevel - 1) * 2;
+        int enemySize = Enemy::getEnemySize(enemyLevel);
         int spawnX, spawnY;
         
         switch (edge) {
@@ -367,7 +324,7 @@ void GameScene::update() {
         
         // Create new enemy
         Enemy newEnemy;
-        newEnemy.initialize(spawnX, spawnY, enemyLevel, ENEMY_SPEED, currentTime);
+        newEnemy.initialize(spawnX, spawnY, enemyLevel, Enemy::DEFAULT_SPEED, currentTime);
         g_enemies.push_back(newEnemy);
         g_lastEnemySpawn = currentTime;
     }
@@ -406,25 +363,26 @@ void GameScene::update() {
                 
                 // If enemy reaches level 0, drop shard and deactivate
                 if (!g_enemies[i].isActive()) {
-                    for (int j = 0; j < MAX_SHARDS; j++) {
-                        if (!g_shards[j].active) {
+                    // Find inactive shard slot
+                    for (int j = 0; j < Item::MAX_SHARDS; j++) {
+                        if (!g_items[j].isActive()) {
                             int shardValue;
                             SDL_Color shardColor;
                             getShardProperties(originalLevel, shardValue, shardColor); // Use original level
-                            g_shards[j] = {g_enemies[i].getCenterX() - SHARD_SIZE/2, 
-                                         g_enemies[i].getCenterY() - SHARD_SIZE/2, 
-                                         true, currentTime, shardValue, shardColor};
+                            g_items[j].initialize(g_enemies[i].getCenterX() - Item::SHARD_SIZE/2, 
+                                                 g_enemies[i].getCenterY() - Item::SHARD_SIZE/2, 
+                                                 ItemType::SHARD, currentTime, shardValue, shardColor);
                             break;
                         }
                     }
                     
                     // 1% chance to drop a magnet
-                    if (rand() % 100 < MAGNET_DROP_CHANCE) {
-                        for (int k = 0; k < MAX_MAGNETS; k++) {
-                            if (!g_magnets[k].active) {
-                                g_magnets[k] = {g_enemies[i].getCenterX() - MAGNET_SIZE/2, 
-                                              g_enemies[i].getCenterY() - MAGNET_SIZE/2, 
-                                              true, currentTime};
+                    if (rand() % 100 < Item::MAGNET_DROP_CHANCE) {
+                        for (int k = Item::MAX_SHARDS; k < Item::MAX_SHARDS + Item::MAX_MAGNETS; k++) {
+                            if (!g_items[k].isActive()) {
+                                g_items[k].initialize(g_enemies[i].getCenterX() - Item::MAGNET_SIZE/2, 
+                                                    g_enemies[i].getCenterY() - Item::MAGNET_SIZE/2, 
+                                                    ItemType::MAGNET, currentTime);
                                 break;
                             }
                         }
@@ -445,50 +403,22 @@ void GameScene::update() {
         }
     }
 
-    // Shard movement and collection
-    for (int i = 0; i < MAX_SHARDS; i++) {
-        if (g_shards[i].active) {
-            // Move shard towards player only if magnet effect is active
-            if (currentTime < g_magnetEffectEndTime) {
-                float dx = g_player.getCenterX() - getShardCenterX(g_shards[i]);
-                float dy = g_player.getCenterY() - getShardCenterY(g_shards[i]);
-                float distance = sqrt(dx * dx + dy * dy);
-                
-                if (distance > 0) {
-                    // Normalize direction and move towards player
-                    dx /= distance;
-                    dy /= distance;
-                    g_shards[i].x += dx * 3.0f; // Shard speed towards player
-                    g_shards[i].y += dy * 3.0f;
-                }
-            }
-            
-            // Player collection (when shard gets close enough)
-            SDL_Rect shardRect = {g_shards[i].x, g_shards[i].y, SHARD_SIZE, SHARD_SIZE};
-            SDL_Rect playerRect = g_player.getRect();
-            if (SDL_HasIntersection(&playerRect, &shardRect)) {
-                g_shards[i].active = false;
-                g_score += g_shards[i].value;
-            }
-        }
-    }
-
-    // Magnet cleanup and player collection
-    for (int i = 0; i < MAX_MAGNETS; i++) {
-        if (g_magnets[i].active) {
-            // Remove old magnets
-            if (currentTime - g_magnets[i].spawnTime > MAGNET_LIFETIME) {
-                g_magnets[i].active = false;
-                continue;
-            }
+    // Item update and collection
+    bool magnetEffectActive = (currentTime < g_magnetEffectEndTime);
+    for (int i = 0; i < Item::MAX_SHARDS + Item::MAX_MAGNETS; i++) {
+        if (g_items[i].isActive()) {
+            // Update item (movement, lifetime, etc.)
+            g_items[i].update(g_player.getCenterX(), g_player.getCenterY(), currentTime, magnetEffectActive);
             
             // Player collection
-            SDL_Rect magnetRect = {g_magnets[i].x, g_magnets[i].y, MAGNET_SIZE, MAGNET_SIZE};
-            SDL_Rect playerRect = g_player.getRect();
-            if (SDL_HasIntersection(&playerRect, &magnetRect)) {
-                g_magnets[i].active = false;
-                // Activate magnet effect for 20 seconds
-                g_magnetEffectEndTime = currentTime + 20000; // 20 seconds
+            if (g_items[i].checkCollisionWithPlayer(g_player.getRect())) {
+                if (g_items[i].getType() == ItemType::SHARD) {
+                    g_score += g_items[i].getValue();
+                } else if (g_items[i].getType() == ItemType::MAGNET) {
+                    // Activate magnet effect for 20 seconds
+                    g_magnetEffectEndTime = currentTime + 20000; // 20 seconds
+                }
+                g_items[i].setActive(false);
             }
         }
     }
@@ -538,21 +468,10 @@ void GameScene::render() {
         }
     }
 
-    // Render shards
-    for (int i = 0; i < MAX_SHARDS; i++) {
-        if (g_shards[i].active) {
-            SDL_SetRenderDrawColor(m_renderer, g_shards[i].color.r, g_shards[i].color.g, g_shards[i].color.b, g_shards[i].color.a);
-            SDL_Rect shardRect = {g_shards[i].x + m_camera.getOffsetX(), g_shards[i].y + m_camera.getOffsetY(), SHARD_SIZE, SHARD_SIZE};
-            SDL_RenderFillRect(m_renderer, &shardRect);
-        }
-    }
-
-    // Render magnets
-    SDL_SetRenderDrawColor(m_renderer, 0, 255, 255, 255);
-    for (int i = 0; i < MAX_MAGNETS; i++) {
-        if (g_magnets[i].active) {
-            SDL_Rect magnetRect = {g_magnets[i].x + m_camera.getOffsetX(), g_magnets[i].y + m_camera.getOffsetY(), MAGNET_SIZE, MAGNET_SIZE};
-            SDL_RenderFillRect(m_renderer, &magnetRect);
+    // Render items
+    for (int i = 0; i < Item::MAX_SHARDS + Item::MAX_MAGNETS; i++) {
+        if (g_items[i].isActive()) {
+            g_items[i].render(m_renderer, m_camera.getOffsetX(), m_camera.getOffsetY());
         }
     }
 
@@ -579,14 +498,9 @@ void GameScene::restart() {
     // Clear all enemies
     g_enemies.clear();
     
-    // Deactivate all shards
-    for (int i = 0; i < MAX_SHARDS; i++) {
-        g_shards[i].active = false;
-    }
-    
-    // Deactivate all magnets
-    for (int i = 0; i < MAX_MAGNETS; i++) {
-        g_magnets[i].active = false;
+    // Deactivate all items
+    for (int i = 0; i < Item::MAX_SHARDS + Item::MAX_MAGNETS; i++) {
+        g_items[i].setActive(false);
     }
     
     std::cout << "Game restarted - all state reset" << std::endl;

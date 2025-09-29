@@ -147,3 +147,16 @@ void Enemy::checkWorldBounds(int worldWidth, int worldHeight) {
         m_active = false;
     }
 }
+
+// Static helper functions
+int Enemy::getEnemySize(int level) {
+    return BASE_SIZE + (level - 1) * 2;
+}
+
+int Enemy::getEnemyCenterX(int enemyX, int enemySize) {
+    return enemyX + enemySize / 2;
+}
+
+int Enemy::getEnemyCenterY(int enemyY, int enemySize) {
+    return enemyY + enemySize / 2;
+}

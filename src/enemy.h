@@ -51,6 +51,16 @@ public:
     static constexpr float MIN_DISTANCE = 3.0f;
     static constexpr int KNOCKBACK_DURATION = 200; // milliseconds
     
+    // Game-wide enemy constants
+    static constexpr int MAX_ENEMIES = 200;
+    static constexpr int ENEMY_SPAWN_RATE = 500; // milliseconds between spawns
+    static constexpr int MAX_ENEMY_LEVEL = 10;
+    
+    // Helper functions
+    static int getEnemySize(int level);
+    static int getEnemyCenterX(int enemyX, int enemySize);
+    static int getEnemyCenterY(int enemyY, int enemySize);
+    
 private:
     // Position and movement
     int m_x, m_y;
