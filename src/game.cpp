@@ -3,6 +3,7 @@
 #include "player.h"
 #include "enemy.h"
 #include "item.h"
+#include "asset_manager.h"
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
@@ -39,9 +40,7 @@ struct GridCell {
 };
 
 // Game state variables
-static BitmapFont* g_font = nullptr;
-static SDL_Texture* g_playerTexture = nullptr;
-static SDL_Texture* g_enemyTextures[Enemy::MAX_ENEMY_LEVEL + 1] = {nullptr};
+static AssetManager* g_assetManager = nullptr;
 static Player g_player;
 static std::vector<Enemy> g_enemies;
 static Item g_items[Item::MAX_SHARDS + Item::MAX_MAGNETS];
@@ -107,24 +106,6 @@ void renderText(SDL_Renderer* renderer, BitmapFont* font, const std::string& tex
     font->renderText(renderer, text, x, y, color);
 }
 
-void getShardProperties(int enemyLevel, int& value, SDL_Color& color) {
-    if (enemyLevel >= 8) {
-        value = 25;
-        color = {128, 0, 128, 255}; // Purple
-    } else if (enemyLevel >= 6) {
-        value = 20;
-        color = {0, 0, 255, 255}; // Blue
-    } else if (enemyLevel >= 4) {
-        value = 15;
-        color = {0, 255, 0, 255}; // Green
-    } else if (enemyLevel >= 2) {
-        value = 10;
-        color = {255, 165, 0, 255}; // Orange
-    } else {
-        value = 5;
-        color = {255, 255, 0, 255}; // Yellow
-    }
-}
 
 GameScene::GameScene() {
     // Initialize random seed
@@ -133,18 +114,9 @@ GameScene::GameScene() {
 
 GameScene::~GameScene() {
     // Cleanup will be handled here
-    if (g_playerTexture) {
-        SDL_DestroyTexture(g_playerTexture);
-    }
-    
-    for (int level = 1; level <= Enemy::MAX_ENEMY_LEVEL; level++) {
-        if (g_enemyTextures[level]) {
-            SDL_DestroyTexture(g_enemyTextures[level]);
-        }
-    }
-    
-    if (g_font) {
-        delete g_font;
+    if (g_assetManager) {
+        delete g_assetManager;
+        g_assetManager = nullptr;
     }
 }
 
@@ -160,46 +132,10 @@ bool GameScene::initialize(SDL_Renderer* renderer) {
     
     std::cout << "Renderer scaling configured: Logical size " << SCREEN_WIDTH << "x" << SCREEN_HEIGHT << std::endl;
     
-    // Load bitmap font
-    g_font = new BitmapFont();
-    std::cout << "Attempting to load bitmap font..." << std::endl;
-    
-    const char* fontPath = "assets/dbyte_1x.png";
-    
-    if (!g_font->loadFont(renderer, fontPath)) {
-        std::cerr << "Failed to load bitmap font - text rendering will be disabled" << std::endl;
-        delete g_font;
-        g_font = nullptr;
-    } else {
-        std::cout << "Bitmap font loaded successfully!" << std::endl;
-    }
-
-    // Load player character image
-    const char* playerPath = "assets/char.png";
-    
-    SDL_Surface* playerSurface = IMG_Load(playerPath);
-    if (playerSurface) {
-        g_playerTexture = SDL_CreateTextureFromSurface(renderer, playerSurface);
-        SDL_FreeSurface(playerSurface);
-        if (!g_playerTexture) {
-            std::cerr << "Failed to create player texture: " << SDL_GetError() << std::endl;
-        }
-    } else {
-        std::cout << "Player image not found, using placeholder rectangle" << std::endl;
-    }
-
-    // Load enemy textures for each level
-    for (int level = 1; level <= Enemy::MAX_ENEMY_LEVEL; level++) {
-        std::string filename = "assets/enemy" + std::to_string(level) + ".png";
-        
-        SDL_Surface* enemySurface = IMG_Load(filename.c_str());
-        if (enemySurface) {
-            g_enemyTextures[level] = SDL_CreateTextureFromSurface(renderer, enemySurface);
-            SDL_FreeSurface(enemySurface);
-            if (!g_enemyTextures[level]) {
-                std::cerr << "Failed to create enemy texture for level " << level << ": " << SDL_GetError() << std::endl;
-            }
-        }
+    // Initialize asset manager
+    g_assetManager = new AssetManager();
+    if (!g_assetManager->initialize(renderer)) {
+        std::cerr << "Failed to initialize AssetManager - some assets may not be available" << std::endl;
     }
 
     // Initialize game state - player will be positioned after world bounds are set
@@ -218,12 +154,9 @@ bool GameScene::initialize(SDL_Renderer* renderer) {
     g_magnetEffectEndTime = 0;
     m_quit = false;
     
-    // Load tilemap (large 1000x1000 map with optimizations)
-    if (!m_tmxLoader.loadTMX("assets/game_level.tmx", renderer, m_tilemap)) {
-        std::cerr << "Failed to load tilemap - game will continue without background" << std::endl;
-    } else {
-        std::cout << "Tilemap loaded successfully!" << std::endl;
-    }
+    // Get tilemap from asset manager
+    m_tilemap = g_assetManager->getTilemap();
+    m_tmxLoader = g_assetManager->getTMXLoader();
     
     // Initialize camera with dead zone (200x150 pixel dead zone in center)
     m_camera.initialize(SCREEN_WIDTH, SCREEN_HEIGHT, 200, 150);
@@ -368,7 +301,7 @@ void GameScene::update() {
                         if (!g_items[j].isActive()) {
                             int shardValue;
                             SDL_Color shardColor;
-                            getShardProperties(originalLevel, shardValue, shardColor); // Use original level
+                            g_enemies[i].getShardProperties(shardValue, shardColor);
                             g_items[j].initialize(g_enemies[i].getCenterX() - Item::SHARD_SIZE/2, 
                                                  g_enemies[i].getCenterY() - Item::SHARD_SIZE/2, 
                                                  ItemType::SHARD, currentTime, shardValue, shardColor);
@@ -430,14 +363,16 @@ void GameScene::render() {
     SDL_RenderClear(m_renderer);
     
     // Render tilemap background with camera offset
-    m_tmxLoader.renderTilemap(m_renderer, m_tilemap, m_camera.getOffsetX(), m_camera.getOffsetY(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    if (g_assetManager && g_assetManager->isTilemapLoaded()) {
+        g_assetManager->getTMXLoader().renderTilemap(m_renderer, g_assetManager->getTilemap(), m_camera.getOffsetX(), m_camera.getOffsetY(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
 
     // Render player
     SDL_Rect playerRect = g_player.getRect();
     playerRect.x += m_camera.getOffsetX();
     playerRect.y += m_camera.getOffsetY();
-    if (g_playerTexture) {
-        SDL_RenderCopy(m_renderer, g_playerTexture, NULL, &playerRect);
+    if (g_assetManager && g_assetManager->getPlayerTexture()) {
+        SDL_RenderCopy(m_renderer, g_assetManager->getPlayerTexture(), NULL, &playerRect);
     } else {
         SDL_SetRenderDrawColor(m_renderer, 255, 255, 255, 255);
         SDL_RenderFillRect(m_renderer, &playerRect);
@@ -454,14 +389,18 @@ void GameScene::render() {
     // Render enemies
     for (size_t i = 0; i < g_enemies.size(); i++) {
         if (g_enemies[i].isActive()) {
-            g_enemies[i].render(m_renderer, g_enemyTextures[g_enemies[i].getLevel()], 
+            SDL_Texture* enemyTexture = nullptr;
+            if (g_assetManager) {
+                enemyTexture = g_assetManager->getEnemyTexture(g_enemies[i].getLevel());
+            }
+            g_enemies[i].render(m_renderer, enemyTexture, 
                                m_camera.getOffsetX(), m_camera.getOffsetY());
             
             // Render level number
             SDL_Color white = {255, 255, 255, 255};
-            if (g_font) {
+            if (g_assetManager && g_assetManager->getFont()) {
                 int enemySize = g_enemies[i].getSize();
-                renderText(m_renderer, g_font, std::to_string(g_enemies[i].getLevel()), 
+                renderText(m_renderer, g_assetManager->getFont(), std::to_string(g_enemies[i].getLevel()), 
                          g_enemies[i].getX() + m_camera.getOffsetX() + enemySize/2 - 4, 
                          g_enemies[i].getY() + m_camera.getOffsetY() + enemySize/2 - 6, white);
             }
@@ -477,9 +416,9 @@ void GameScene::render() {
 
     // Render score and enemy count
     SDL_Color white = {255, 255, 255, 255};
-    if (g_font) {
-        renderText(m_renderer, g_font, "Shards: " + std::to_string(g_score), 10, 10, white);
-        renderText(m_renderer, g_font, "Enemies: " + std::to_string(g_enemies.size()), 10, 30, white);
+    if (g_assetManager && g_assetManager->getFont()) {
+        renderText(m_renderer, g_assetManager->getFont(), "Shards: " + std::to_string(g_score), 10, 10, white);
+        renderText(m_renderer, g_assetManager->getFont(), "Enemies: " + std::to_string(g_enemies.size()), 10, 30, white);
     }
 
     SDL_RenderPresent(m_renderer);

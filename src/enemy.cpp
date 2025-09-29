@@ -160,3 +160,22 @@ int Enemy::getEnemyCenterX(int enemyX, int enemySize) {
 int Enemy::getEnemyCenterY(int enemyY, int enemySize) {
     return enemyY + enemySize / 2;
 }
+
+void Enemy::getShardProperties(int& value, SDL_Color& color) const {
+    if (m_level >= 8) {
+        value = 25;
+        color = {128, 0, 128, 255}; // Purple
+    } else if (m_level >= 6) {
+        value = 20;
+        color = {0, 0, 255, 255}; // Blue
+    } else if (m_level >= 4) {
+        value = 15;
+        color = {0, 255, 0, 255}; // Green
+    } else if (m_level >= 2) {
+        value = 10;
+        color = {255, 165, 0, 255}; // Orange
+    } else {
+        value = 5;
+        color = {255, 255, 0, 255}; // Yellow
+    }
+}

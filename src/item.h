@@ -45,8 +45,6 @@ public:
     static constexpr int MAGNET_SIZE = 12;
     static constexpr int MAX_SHARDS = 50;
     static constexpr int MAX_MAGNETS = 5;
-    static constexpr int SHARD_LIFETIME = 10000; // milliseconds
-    static constexpr int MAGNET_LIFETIME = 15000; // milliseconds
     static constexpr int MAGNET_DROP_CHANCE = 1; // 1 in 100 chance
     
 private:

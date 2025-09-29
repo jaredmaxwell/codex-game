@@ -20,12 +20,6 @@ void Item::initialize(int x, int y, ItemType type, Uint32 spawnTime, int value, 
 void Item::update(int playerCenterX, int playerCenterY, Uint32 currentTime, bool magnetEffectActive) {
     if (!m_active) return;
     
-    // Check if item has expired
-    if (isExpired(currentTime)) {
-        m_active = false;
-        return;
-    }
-    
     // Move towards player if magnet effect is active (only for shards)
     if (m_type == ItemType::SHARD && magnetEffectActive) {
         moveTowardsPlayer(playerCenterX, playerCenterY);
@@ -77,10 +71,3 @@ void Item::moveTowardsPlayer(int playerCenterX, int playerCenterY) {
     }
 }
 
-bool Item::isExpired(Uint32 currentTime) const {
-    if (m_type == ItemType::SHARD) {
-        return (currentTime - m_spawnTime) > SHARD_LIFETIME;
-    } else {
-        return (currentTime - m_spawnTime) > MAGNET_LIFETIME;
-    }
-}

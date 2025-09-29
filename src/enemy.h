@@ -39,6 +39,9 @@ public:
     void applyKnockback(float dx, float dy, float distance, Uint32 currentTime);
     bool isInKnockback(Uint32 currentTime) const { return currentTime < m_knockbackEndTime; }
     
+    // Shard properties when enemy is defeated
+    void getShardProperties(int& value, SDL_Color& color) const;
+    
     // Collision detection
     bool checkCollision(const SDL_Rect& otherRect) const;
     bool checkCollisionWithPlayer(const Player& player) const;
