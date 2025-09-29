@@ -2,11 +2,13 @@
 #include <SDL.h>
 #include "game.h"
 #include "menu_scene.h"
-#include "settings.h"
+#include "player_select_scene.h"
+#include "../systems/settings.h"
 
 enum class SceneType {
     GAME,
-    MENU
+    MENU,
+    PLAYER_SELECT
 };
 
 class SceneManager {
@@ -36,14 +38,22 @@ private:
     // Scene objects
     GameScene* m_gameScene = nullptr;
     MenuScene* m_menuScene = nullptr;
+    PlayerSelectScene* m_playerSelectScene = nullptr;
     
     // Settings
     Settings* m_settings = nullptr;
     
+    // Character class selection
+    CharacterClass m_selectedCharacterClass = CharacterClass::SWORDSMAN;
+    
     // Scene switching
     void switchToGame();
     void switchToMenu();
+    void switchToPlayerSelect();
     void handleMenuAction();
+    
+    // Character class management
+    CharacterClass getSelectedCharacterClass() const { return m_selectedCharacterClass; }
     
     // Settings management
     void toggleFullscreen();

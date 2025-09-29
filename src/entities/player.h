@@ -1,8 +1,17 @@
 #pragma once
 #include <SDL.h>
 #include "entity.h"
+#include "projectile.h"
+#include <vector>
 
 enum Direction { UP, DOWN, LEFT, RIGHT };
+
+enum class CharacterClass {
+    SWORDSMAN,
+    BOMBER,
+    ARCHER,
+    MAGE
+};
 
 struct Attack {
     bool active;
@@ -27,6 +36,18 @@ public:
     // Handle input
     void handleInput(const Uint8* keystate);
     void handleAttack();
+    
+    // Character class management
+    void setCharacterClass(CharacterClass characterClass);
+    CharacterClass getCharacterClass() const { return m_characterClass; }
+    
+    // Projectile management
+    void updateProjectiles();
+    void renderProjectiles(SDL_Renderer* renderer, int cameraOffsetX, int cameraOffsetY) const;
+    std::vector<PlayerProjectile>& getProjectiles() { return m_projectiles; }
+    const std::vector<PlayerProjectile>& getProjectiles() const { return m_projectiles; }
+    void clearProjectiles();
+    void removeExplodedProjectiles();
     
     // Player state management
     void handleDeath();
@@ -55,4 +76,12 @@ private:
     Attack m_attack;
     bool m_alive;
     int m_score;
+    CharacterClass m_characterClass;
+    std::vector<PlayerProjectile> m_projectiles;
+    
+    // Attack methods for different classes
+    void handleBomberAttack();
+    void handleArcherAttack();
+    void handleMageAttack();
+    void handleSwordsmanAttack();
 };

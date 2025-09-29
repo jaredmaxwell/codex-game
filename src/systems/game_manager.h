@@ -1,11 +1,11 @@
 #pragma once
 #include <vector>
 #include <SDL.h>
-#include "entity.h"
-#include "player.h"
-#include "enemy.h"
-#include "pet.h"
-#include "item.h"
+#include "../entities/entity.h"
+#include "../entities/player.h"
+#include "../entities/enemy.h"
+#include "../entities/pet.h"
+#include "../entities/item.h"
 
 // Forward declarations
 class AssetManager;
@@ -50,6 +50,16 @@ private:
     Uint32 m_lastEnemySpawn;
     Uint32 m_magnetEffectEndTime;
     
+    // Explosion effects
+    struct Explosion {
+        int x, y;
+        float radius;
+        Uint32 startTime;
+        Uint32 duration;
+        bool active;
+    };
+    std::vector<Explosion> m_explosions;
+    
     // World bounds
     int m_worldWidth;
     int m_worldHeight;
@@ -63,4 +73,13 @@ private:
     // Collision handling
     void handlePlayerAttackCollisions(Uint32 currentTime);
     void handlePlayerEnemyCollisions();
+    void handleProjectileCollisions(Uint32 currentTime);
+    void handleExplosionDamage(int explosionX, int explosionY, float explosionRadius);
+    
+    // Explosion rendering
+    void renderExplosions(SDL_Renderer* renderer, int cameraOffsetX, int cameraOffsetY);
+    void updateExplosions(Uint32 currentTime);
+    
+    // Projectile timer rendering
+    void renderProjectileTimers(SDL_Renderer* renderer, AssetManager* assetManager, int cameraOffsetX, int cameraOffsetY);
 };

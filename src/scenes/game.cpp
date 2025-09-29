@@ -1,11 +1,11 @@
 #include "game.h"
-#include "bitmap_font.h"
-#include "player.h"
-#include "enemy.h"
-#include "item.h"
-#include "pet.h"
-#include "game_manager.h"
-#include "asset_manager.h"
+#include "../rendering/bitmap_font.h"
+#include "../entities/player.h"
+#include "../entities/enemy.h"
+#include "../entities/item.h"
+#include "../entities/pet.h"
+#include "../systems/game_manager.h"
+#include "../systems/asset_manager.h"
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
@@ -141,6 +141,16 @@ bool GameScene::initialize(SDL_Renderer* renderer) {
     m_camera.centerOn(g_gameManager->getPlayer().getCenterX(), g_gameManager->getPlayer().getCenterY());
     
     return true;
+}
+
+void GameScene::setCharacterClass(CharacterClass characterClass) {
+    m_characterClass = characterClass;
+    
+    // Set the player's character class in the game manager
+    if (g_gameManager) {
+        g_gameManager->getPlayer().setCharacterClass(characterClass);
+        std::cout << "Player character class set to: " << static_cast<int>(characterClass) << std::endl;
+    }
 }
 
 void GameScene::handleEvent(const SDL_Event& event) {

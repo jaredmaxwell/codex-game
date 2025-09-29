@@ -1,8 +1,9 @@
 #pragma once
 #include <SDL.h>
 #include <string>
-#include "tmx_loader.h"
-#include "camera.h"
+#include "../utils/tmx_loader.h"
+#include "../rendering/camera.h"
+#include "../entities/player.h"
 
 class GameScene {
 public:
@@ -11,6 +12,9 @@ public:
     
     // Initialize the game scene
     bool initialize(SDL_Renderer* renderer);
+    
+    // Set character class for the player
+    void setCharacterClass(CharacterClass characterClass);
     
     // Main game loop function
     void update();
@@ -42,4 +46,7 @@ private:
     
     // Game objects and state will be moved here from main.cpp
     // (This will be implemented in game.cpp)
+    
+    // Character class
+    CharacterClass m_characterClass = CharacterClass::SWORDSMAN;
 };

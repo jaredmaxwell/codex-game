@@ -13,6 +13,9 @@ SceneManager::~SceneManager() {
     if (m_menuScene) {
         delete m_menuScene;
     }
+    if (m_playerSelectScene) {
+        delete m_playerSelectScene;
+    }
     if (m_settings) {
         delete m_settings;
     }
@@ -48,8 +51,15 @@ bool SceneManager::initialize(SDL_Renderer* renderer, SDL_Window* window) {
         return false;
     }
     
+    // Initialize player select scene
+    m_playerSelectScene = new PlayerSelectScene();
+    if (!m_playerSelectScene->initialize(renderer)) {
+        std::cerr << "Failed to initialize player select scene" << std::endl;
+        return false;
+    }
+    
     m_quit = false;
-    m_currentScene = SceneType::GAME;
+    m_currentScene = SceneType::PLAYER_SELECT;  // Start with player select
     
     return true;
 }
@@ -68,20 +78,22 @@ void SceneManager::handleEvent(const SDL_Event& event) {
         return;
     }
     
-    // Handle F1 key to toggle menu
+    // Handle F1 key to toggle menu (only from game scene)
     if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_F1) {
         if (m_currentScene == SceneType::GAME) {
             switchToMenu();
-        } else {
+        } else if (m_currentScene == SceneType::MENU) {
             switchToGame();
         }
         return;
     }
     
-    // Handle ESC key to close menu
+    // Handle ESC key to close menu or go back
     if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
         if (m_currentScene == SceneType::MENU) {
             switchToGame();
+        } else if (m_currentScene == SceneType::PLAYER_SELECT) {
+            m_quit = true;  // Exit from player select
         } else {
             m_quit = true;
         }
@@ -115,6 +127,15 @@ void SceneManager::handleEvent(const SDL_Event& event) {
             }
             handleMenuAction();
         }
+    } else if (m_currentScene == SceneType::PLAYER_SELECT && m_playerSelectScene) {
+        m_playerSelectScene->handleEvent(event);
+        
+        // Check if player select wants to close
+        if (m_playerSelectScene->shouldClose()) {
+            m_selectedCharacterClass = m_playerSelectScene->getSelectedClass();
+            std::cout << "Selected character class: " << static_cast<int>(m_selectedCharacterClass) << std::endl;
+            switchToGame();
+        }
     }
 }
 
@@ -123,6 +144,8 @@ void SceneManager::update() {
         m_gameScene->update();
     } else if (m_currentScene == SceneType::MENU && m_menuScene) {
         m_menuScene->update();
+    } else if (m_currentScene == SceneType::PLAYER_SELECT && m_playerSelectScene) {
+        m_playerSelectScene->update();
     }
 }
 
@@ -131,11 +154,19 @@ void SceneManager::render() {
         m_gameScene->render();
     } else if (m_currentScene == SceneType::MENU && m_menuScene) {
         m_menuScene->render();
+    } else if (m_currentScene == SceneType::PLAYER_SELECT && m_playerSelectScene) {
+        m_playerSelectScene->render();
     }
 }
 
 void SceneManager::switchToGame() {
     m_currentScene = SceneType::GAME;
+    
+    // Set the player's character class
+    if (m_gameScene) {
+        m_gameScene->setCharacterClass(m_selectedCharacterClass);
+    }
+    
     std::cout << "Switched to game scene" << std::endl;
 }
 
@@ -145,6 +176,14 @@ void SceneManager::switchToMenu() {
         m_menuScene->reset();
     }
     std::cout << "Switched to menu scene" << std::endl;
+}
+
+void SceneManager::switchToPlayerSelect() {
+    m_currentScene = SceneType::PLAYER_SELECT;
+    if (m_playerSelectScene) {
+        m_playerSelectScene->reset();
+    }
+    std::cout << "Switched to player select scene" << std::endl;
 }
 
 void SceneManager::handleMenuAction() {

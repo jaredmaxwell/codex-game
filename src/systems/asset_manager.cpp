@@ -1,5 +1,5 @@
 #include "asset_manager.h"
-#include "enemy.h"
+#include "../entities/enemy.h"
 #include <iostream>
 
 // Platform-specific SDL_image includes

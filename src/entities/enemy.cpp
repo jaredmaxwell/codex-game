@@ -1,7 +1,7 @@
 #include "enemy.h"
 #include "player.h"
 #include "item.h"
-#include "bitmap_font.h"
+#include "../rendering/bitmap_font.h"
 #include <cmath>
 #include <algorithm>
 #include <iostream>

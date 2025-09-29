@@ -9,7 +9,7 @@
 #include <SDL2/SDL_image.h>
 #endif
 #include <iostream>
-#include "scene_manager.h"
+#include "scenes/scene_manager.h"
 
 // Platform-specific main function handling
 #ifdef __EMSCRIPTEN__

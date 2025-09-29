@@ -1,9 +1,9 @@
 #pragma once
 #include <SDL.h>
 #include <string>
-#include "bitmap_font.h"
-#include "tmx_loader.h"
-#include "enemy.h"
+#include "../rendering/bitmap_font.h"
+#include "../utils/tmx_loader.h"
+#include "../entities/enemy.h"
 
 class AssetManager {
 public:

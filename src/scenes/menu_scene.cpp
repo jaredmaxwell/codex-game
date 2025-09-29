@@ -1,5 +1,5 @@
 #include "menu_scene.h"
-#include "bitmap_font.h"
+#include "../rendering/bitmap_font.h"
 #include <iostream>
 
 // Game constants (matching game.cpp)
