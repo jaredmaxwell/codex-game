@@ -12,7 +12,7 @@
 #endif
 
 AssetManager::AssetManager() 
-    : m_font(nullptr), m_playerTexture(nullptr), m_tilemapLoaded(false) {
+    : m_font(nullptr), m_playerTexture(nullptr), m_petTexture(nullptr), m_tilemapLoaded(false) {
     // Initialize enemy texture array
     for (int i = 0; i <= Enemy::MAX_ENEMY_LEVEL; i++) {
         m_enemyTextures[i] = nullptr;
@@ -41,6 +41,11 @@ bool AssetManager::initialize(SDL_Renderer* renderer) {
     
     if (!loadPlayerTexture(renderer)) {
         std::cerr << "AssetManager: Failed to load player texture" << std::endl;
+        success = false;
+    }
+    
+    if (!loadPetTexture(renderer)) {
+        std::cerr << "AssetManager: Failed to load pet texture" << std::endl;
         success = false;
     }
     
@@ -120,6 +125,26 @@ bool AssetManager::loadPlayerTexture(SDL_Renderer* renderer) {
     }
 }
 
+bool AssetManager::loadPetTexture(SDL_Renderer* renderer) {
+    const char* petPath = "assets/cat.png";
+    std::cout << "AssetManager: Loading pet texture..." << std::endl;
+    
+    SDL_Surface* petSurface = IMG_Load(petPath);
+    if (petSurface) {
+        m_petTexture = SDL_CreateTextureFromSurface(renderer, petSurface);
+        SDL_FreeSurface(petSurface);
+        if (!m_petTexture) {
+            std::cerr << "AssetManager: Failed to create pet texture: " << SDL_GetError() << std::endl;
+            return false;
+        }
+        std::cout << "AssetManager: Pet texture loaded successfully!" << std::endl;
+        return true;
+    } else {
+        std::cout << "AssetManager: Pet image not found, will use placeholder rectangle" << std::endl;
+        return false;
+    }
+}
+
 bool AssetManager::loadEnemyTextures(SDL_Renderer* renderer) {
     std::cout << "AssetManager: Loading enemy textures..." << std::endl;
     bool allLoaded = true;
@@ -168,6 +193,11 @@ void AssetManager::cleanupTextures() {
     if (m_playerTexture) {
         SDL_DestroyTexture(m_playerTexture);
         m_playerTexture = nullptr;
+    }
+    
+    if (m_petTexture) {
+        SDL_DestroyTexture(m_petTexture);
+        m_petTexture = nullptr;
     }
     
     for (int level = 1; level <= Enemy::MAX_ENEMY_LEVEL; level++) {

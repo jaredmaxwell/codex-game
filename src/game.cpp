@@ -489,8 +489,7 @@ void GameScene::render() {
     if (g_pet.isActive()) {
         SDL_Texture* petTexture = nullptr;
         if (g_assetManager) {
-            // Use player texture as fallback for pet (or create a separate pet texture)
-            petTexture = g_assetManager->getPlayerTexture();
+            petTexture = g_assetManager->getPetTexture();
         }
         g_pet.render(m_renderer, petTexture, m_camera.getOffsetX(), m_camera.getOffsetY());
         
