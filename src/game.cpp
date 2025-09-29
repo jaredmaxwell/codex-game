@@ -3,6 +3,7 @@
 #include "player.h"
 #include "enemy.h"
 #include "item.h"
+#include "pet.h"
 #include "asset_manager.h"
 #include <iostream>
 #include <cmath>
@@ -42,6 +43,7 @@ struct GridCell {
 // Game state variables
 static AssetManager* g_assetManager = nullptr;
 static Player g_player;
+static Pet g_pet;
 static std::vector<Enemy> g_enemies;
 static Item g_items[Item::MAX_SHARDS + Item::MAX_MAGNETS];
 static Uint32 g_lastEnemySpawn = 0;
@@ -219,6 +221,9 @@ bool GameScene::initialize(SDL_Renderer* renderer) {
     // Initialize player at world center
     g_player.initialize(g_worldWidth / 2 - Player::PLAYER_SIZE / 2, g_worldHeight / 2 - Player::PLAYER_SIZE / 2);
     
+    // Initialize pet near player
+    g_pet.initialize(g_worldWidth / 2 - Pet::SIZE / 2 + 30, g_worldHeight / 2 - Pet::SIZE / 2 + 30);
+    
     // Center camera on player initially
     m_camera.centerOn(g_player.getCenterX(), g_player.getCenterY());
     
@@ -241,16 +246,21 @@ void GameScene::handleEvent(const SDL_Event& event) {
 }
 
 void GameScene::update() {
+    // Get current time first
+    Uint32 currentTime = SDL_GetTicks();
+    
     // Handle continuous movement with keyboard state
     const Uint8* keystate = SDL_GetKeyboardState(NULL);
     g_player.handleInput(keystate);
     g_player.update();
     
+    // Update pet
+    g_pet.update(g_player, g_enemies, currentTime);
+    
     // Update camera to follow player
     m_camera.update(g_player.getCenterX(), g_player.getCenterY());
 
     // Enemy spawning
-    Uint32 currentTime = SDL_GetTicks();
     if (currentTime - g_lastEnemySpawn > Enemy::ENEMY_SPAWN_RATE && g_enemies.size() < Enemy::MAX_ENEMIES) {
         // Calculate enemy level based on player's shard count
         int enemyLevel = 1 + (g_score / 10); // Every 10 shards increases enemy level by 1
@@ -368,6 +378,60 @@ void GameScene::update() {
         }
     }
 
+    // Collision detection between pet projectiles and enemies
+    for (const auto& projectile : g_pet.getProjectiles()) {
+        if (!projectile.active) continue;
+        
+        SDL_Rect projectileRect = {projectile.x, projectile.y, Projectile::SIZE, Projectile::SIZE};
+        
+        for (size_t i = 0; i < g_enemies.size(); i++) {
+            if (g_enemies[i].isActive() && g_enemies[i].checkCollision(projectileRect)) {
+                // Enemy hit by pet projectile - level down and knockback
+                int originalLevel = g_enemies[i].getLevel();
+                g_enemies[i].takeDamage();
+                
+                // Calculate knockback direction (away from pet)
+                float dx = g_enemies[i].getX() - g_pet.getX();
+                float dy = g_enemies[i].getY() - g_pet.getY();
+                float distance = sqrt(dx * dx + dy * dy);
+                
+                g_enemies[i].applyKnockback(dx, dy, distance, currentTime);
+                
+                // If enemy reaches level 0, drop shard and deactivate
+                if (!g_enemies[i].isActive()) {
+                    // Find inactive shard slot
+                    for (int j = 0; j < Item::MAX_SHARDS; j++) {
+                        if (!g_items[j].isActive()) {
+                            int shardValue;
+                            SDL_Color shardColor;
+                            g_enemies[i].getShardProperties(shardValue, shardColor);
+                            g_items[j].initialize(g_enemies[i].getCenterX() - Item::SHARD_SIZE/2, 
+                                                 g_enemies[i].getCenterY() - Item::SHARD_SIZE/2, 
+                                                 ItemType::SHARD, currentTime, shardValue, shardColor);
+                            break;
+                        }
+                    }
+                    
+                    // 1% chance to drop a magnet
+                    if (rand() % 100 < Item::MAGNET_DROP_CHANCE) {
+                        for (int k = Item::MAX_SHARDS; k < Item::MAX_SHARDS + Item::MAX_MAGNETS; k++) {
+                            if (!g_items[k].isActive()) {
+                                g_items[k].initialize(g_enemies[i].getCenterX() - Item::MAGNET_SIZE/2, 
+                                                    g_enemies[i].getCenterY() - Item::MAGNET_SIZE/2, 
+                                                    ItemType::MAGNET, currentTime);
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // Mark projectile as inactive (it hit something)
+                const_cast<Projectile&>(projectile).active = false;
+                break; // Projectile can only hit one enemy
+            }
+        }
+    }
+
     // Collision detection between player and enemies
     for (size_t i = 0; i < g_enemies.size(); i++) {
         if (g_enemies[i].isActive() && g_enemies[i].checkCollisionWithPlayer(g_player)) {
@@ -419,6 +483,19 @@ void GameScene::render() {
     } else {
         SDL_SetRenderDrawColor(m_renderer, 255, 255, 255, 255);
         SDL_RenderFillRect(m_renderer, &playerRect);
+    }
+
+    // Render pet
+    if (g_pet.isActive()) {
+        SDL_Texture* petTexture = nullptr;
+        if (g_assetManager) {
+            // Use player texture as fallback for pet (or create a separate pet texture)
+            petTexture = g_assetManager->getPlayerTexture();
+        }
+        g_pet.render(m_renderer, petTexture, m_camera.getOffsetX(), m_camera.getOffsetY());
+        
+        // Render pet projectiles
+        g_pet.renderProjectiles(m_renderer, m_camera.getOffsetX(), m_camera.getOffsetY());
     }
 
     if (g_player.getAttack().active) {
@@ -476,6 +553,9 @@ void GameScene::restart() {
     
     // Reset player position to world center
     g_player.initialize(g_worldWidth / 2 - Player::PLAYER_SIZE / 2, g_worldHeight / 2 - Player::PLAYER_SIZE / 2);
+    
+    // Reset pet position near player
+    g_pet.initialize(g_worldWidth / 2 - Pet::SIZE / 2 + 30, g_worldHeight / 2 - Pet::SIZE / 2 + 30);
     
     // Clear all enemies
     g_enemies.clear();
