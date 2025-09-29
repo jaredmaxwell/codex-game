@@ -9,7 +9,7 @@
 #include <SDL2/SDL_image.h>
 #endif
 #include <iostream>
-#include "game.h"
+#include "scene_manager.h"
 
 // Platform-specific main function handling
 #ifdef __EMSCRIPTEN__
@@ -24,20 +24,20 @@
 // Global variables for SDL
 SDL_Renderer* g_renderer = nullptr;
 SDL_Window* g_window = nullptr;
-GameScene* g_gameScene = nullptr;
+SceneManager* g_sceneManager = nullptr;
 
 // Game loop function for Emscripten
 void gameLoop() {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
-        g_gameScene->handleEvent(e);
+        g_sceneManager->handleEvent(e);
     }
     
-    g_gameScene->update();
-    g_gameScene->render();
+    g_sceneManager->update();
+    g_sceneManager->render();
     
     // Check if we should quit
-    if (g_gameScene->shouldQuit()) {
+    if (g_sceneManager->shouldQuit()) {
         #ifdef __EMSCRIPTEN__
         emscripten_cancel_main_loop();
         #endif
@@ -82,8 +82,8 @@ bool initializeSDL() {
 
 // Cleanup function
 void cleanup() {
-    if (g_gameScene) {
-        delete g_gameScene;
+    if (g_sceneManager) {
+        delete g_sceneManager;
     }
     SDL_DestroyRenderer(g_renderer);
     SDL_DestroyWindow(g_window);
@@ -97,10 +97,10 @@ int SDL_main(int argc, char* argv[]) {
         return 1;
     }
     
-    // Create and initialize game scene
-    g_gameScene = new GameScene();
-    if (!g_gameScene->initialize(g_renderer)) {
-        std::cerr << "Failed to initialize game scene" << std::endl;
+    // Create and initialize scene manager
+    g_sceneManager = new SceneManager();
+    if (!g_sceneManager->initialize(g_renderer, g_window)) {
+        std::cerr << "Failed to initialize scene manager" << std::endl;
         cleanup();
         return 1;
     }
@@ -110,7 +110,7 @@ int SDL_main(int argc, char* argv[]) {
     emscripten_set_main_loop(gameLoop, 0, 1);
     #else
     // Standard desktop game loop
-    while (!g_gameScene->shouldQuit()) {
+    while (!g_sceneManager->shouldQuit()) {
         gameLoop();
         SDL_Delay(16);
     }

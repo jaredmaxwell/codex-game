@@ -27,6 +27,8 @@ public:
     // Getters
     int getX() const { return m_x; }
     int getY() const { return m_y; }
+    int getCenterX() const { return m_x + PLAYER_SIZE / 2; }
+    int getCenterY() const { return m_y + PLAYER_SIZE / 2; }
     Direction getDirection() const { return m_dir; }
     const Attack& getAttack() const { return m_attack; }
     SDL_Rect getRect() const { return {m_x, m_y, PLAYER_SIZE, PLAYER_SIZE}; }
