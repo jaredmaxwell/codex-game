@@ -1,10 +1,12 @@
 #pragma once
 #include <SDL.h>
 #include <vector>
+#include "entity.h"
 
 // Forward declarations
 class Player;
 class Enemy;
+class Item;
 
 struct Projectile {
     bool active;
@@ -16,7 +18,7 @@ struct Projectile {
     static const int LIFETIME = 2000; // 2 seconds
 };
 
-class Pet {
+class Pet : public Entity {
 public:
     Pet();
     ~Pet();
@@ -25,27 +27,22 @@ public:
     void initialize(int startX, int startY);
     
     // Update pet state
+    void update() override;
     void update(const Player& player, const std::vector<Enemy>& enemies, Uint32 currentTime);
     
     // Render the pet
-    void render(SDL_Renderer* renderer, SDL_Texture* texture, int cameraOffsetX, int cameraOffsetY) const;
+    void render(SDL_Renderer* renderer, SDL_Texture* texture, int cameraOffsetX, int cameraOffsetY) const override;
     
-    // Getters
-    int getX() const { return m_x; }
-    int getY() const { return m_y; }
-    int getCenterX() const { return m_x + SIZE / 2; }
-    int getCenterY() const { return m_y + SIZE / 2; }
-    SDL_Rect getRect() const { return {m_x, m_y, SIZE, SIZE}; }
-    bool isActive() const { return m_active; }
-    
-    // Setters
-    void setPosition(int x, int y) { m_x = x; m_y = y; }
-    void setActive(bool active) { m_active = active; }
+    // Entity interface
+    int getSize() const override { return SIZE; }
     
     // Projectile management
     const std::vector<Projectile>& getProjectiles() const { return m_projectiles; }
     void updateProjectiles(Uint32 currentTime);
     void renderProjectiles(SDL_Renderer* renderer, int cameraOffsetX, int cameraOffsetY) const;
+    
+    // Collision handling
+    void handleProjectileCollisions(std::vector<Enemy>& enemies, std::vector<Item>& items, Uint32 currentTime);
     
     // Constants
     static const int SIZE = 12;
@@ -54,9 +51,6 @@ public:
     static const int DETECTION_RANGE = 150; // Range to detect enemies
     
 private:
-    // Position and state
-    int m_x, m_y;
-    bool m_active;
     
     // Shooting
     std::vector<Projectile> m_projectiles;

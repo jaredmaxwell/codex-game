@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL.h>
+#include "entity.h"
 
 enum Direction { UP, DOWN, LEFT, RIGHT };
 
@@ -9,7 +10,7 @@ struct Attack {
     Uint32 startTime;
 };
 
-class Player {
+class Player : public Entity {
 public:
     Player();
     ~Player();
@@ -18,23 +19,31 @@ public:
     void initialize(int startX, int startY);
     
     // Update player state
-    void update();
+    void update() override;
+    
+    // Render player
+    void render(SDL_Renderer* renderer, SDL_Texture* texture, int cameraOffsetX, int cameraOffsetY) const override;
     
     // Handle input
     void handleInput(const Uint8* keystate);
     void handleAttack();
     
+    // Player state management
+    void handleDeath();
+    void respawn(int worldWidth, int worldHeight);
+    bool isAlive() const { return m_alive; }
+    
+    // Score management
+    int getScore() const { return m_score; }
+    void addScore(int points) { m_score += points; }
+    void resetScore() { m_score = 0; }
+    
     // Getters
-    int getX() const { return m_x; }
-    int getY() const { return m_y; }
-    int getCenterX() const { return m_x + PLAYER_SIZE / 2; }
-    int getCenterY() const { return m_y + PLAYER_SIZE / 2; }
     Direction getDirection() const { return m_dir; }
     const Attack& getAttack() const { return m_attack; }
-    SDL_Rect getRect() const { return {m_x, m_y, PLAYER_SIZE, PLAYER_SIZE}; }
     
-    // Setters
-    void setPosition(int x, int y) { m_x = x; m_y = y; }
+    // Entity interface
+    int getSize() const override { return PLAYER_SIZE; }
     
     // Constants
     static const int PLAYER_SIZE = 16;
@@ -42,7 +51,8 @@ public:
     static const int ATTACK_DURATION = 200; // milliseconds
 
 private:
-    int m_x, m_y;
     Direction m_dir;
     Attack m_attack;
+    bool m_alive;
+    int m_score;
 };

@@ -40,6 +40,9 @@ public:
     bool checkCollision(const SDL_Rect& otherRect) const;
     bool checkCollisionWithPlayer(const SDL_Rect& playerRect) const;
     
+    // Collection handling
+    bool handleCollection(const SDL_Rect& playerRect, Uint32 currentTime, int& playerScore, Uint32& magnetEffectEndTime);
+    
     // Static constants
     static constexpr int SHARD_SIZE = 8;
     static constexpr int MAGNET_SIZE = 12;

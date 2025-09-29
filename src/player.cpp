@@ -1,7 +1,7 @@
 #include "player.h"
 #include <cmath>
 
-Player::Player() : m_x(0), m_y(0), m_dir(DOWN) {
+Player::Player() : m_dir(DOWN), m_alive(true), m_score(0) {
     m_attack = {false, {0, 0, PLAYER_SIZE, PLAYER_SIZE}, 0};
 }
 
@@ -10,16 +10,30 @@ Player::~Player() {
 }
 
 void Player::initialize(int startX, int startY) {
-    m_x = startX;
-    m_y = startY;
+    Entity::initialize(startX, startY);
     m_dir = DOWN;
     m_attack = {false, {0, 0, PLAYER_SIZE, PLAYER_SIZE}, 0};
+    m_alive = true;
+    m_score = 0;
 }
 
 void Player::update() {
     // Update attack state
     if (m_attack.active && SDL_GetTicks() - m_attack.startTime > ATTACK_DURATION) {
         m_attack.active = false;
+    }
+}
+
+void Player::render(SDL_Renderer* renderer, SDL_Texture* texture, int cameraOffsetX, int cameraOffsetY) const {
+    SDL_Rect playerRect = getRect();
+    playerRect.x += cameraOffsetX;
+    playerRect.y += cameraOffsetY;
+    
+    if (texture) {
+        SDL_RenderCopy(renderer, texture, NULL, &playerRect);
+    } else {
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderFillRect(renderer, &playerRect);
     }
 }
 
@@ -74,4 +88,16 @@ void Player::handleAttack() {
             m_attack.rect = {m_x + PLAYER_SIZE, m_y, PLAYER_SIZE, PLAYER_SIZE};
             break;
     }
+}
+
+void Player::handleDeath() {
+    m_alive = false;
+    m_score = 0; // Lose all score on death
+}
+
+void Player::respawn(int worldWidth, int worldHeight) {
+    // Reset position to world center
+    setPosition(worldWidth / 2 - PLAYER_SIZE / 2, worldHeight / 2 - PLAYER_SIZE / 2);
+    m_alive = true;
+    m_score = 0;
 }

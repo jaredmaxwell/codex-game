@@ -4,6 +4,7 @@
 
 // Forward declarations
 class Player;
+class Item;
 
 class Enemy {
 public:
@@ -24,6 +25,7 @@ public:
     
     // Render the enemy
     void render(SDL_Renderer* renderer, SDL_Texture* texture, int cameraOffsetX, int cameraOffsetY) const;
+    void render(SDL_Renderer* renderer, SDL_Texture* texture, int cameraOffsetX, int cameraOffsetY, class BitmapFont* font) const;
     
     // Getters
     int getX() const { return m_x; }
@@ -45,8 +47,16 @@ public:
     void applyKnockback(float dx, float dy, float distance, Uint32 currentTime);
     bool isInKnockback(Uint32 currentTime) const { return currentTime < m_knockbackEndTime; }
     
+    // Death and item drop logic
+    void handleDeath(std::vector<Item>& items, Uint32 currentTime);
+    bool shouldDropMagnet() const;
+    
     // Shard properties when enemy is defeated
     void getShardProperties(int& value, SDL_Color& color) const;
+    
+    // Static factory methods
+    static Enemy createEnemy(int x, int y, int level, float speed, Uint32 spawnTime);
+    static int calculateLevel(int playerScore);
     
     // Collision detection
     bool checkCollision(const SDL_Rect& otherRect) const;

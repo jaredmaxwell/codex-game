@@ -4,7 +4,7 @@
 #include <cmath>
 #include <algorithm>
 
-Pet::Pet() : m_x(0), m_y(0), m_active(false), m_lastShotTime(0) {
+Pet::Pet() : m_lastShotTime(0) {
     m_projectiles.reserve(20); // Reserve space for projectiles
 }
 
@@ -13,11 +13,13 @@ Pet::~Pet() {
 }
 
 void Pet::initialize(int startX, int startY) {
-    m_x = startX;
-    m_y = startY;
-    m_active = true;
+    Entity::initialize(startX, startY);
     m_lastShotTime = 0;
     m_projectiles.clear();
+}
+
+void Pet::update() {
+    // Basic update - can be overridden by specific update methods
 }
 
 void Pet::update(const Player& player, const std::vector<Enemy>& enemies, Uint32 currentTime) {
@@ -169,5 +171,35 @@ void Pet::renderProjectiles(SDL_Renderer* renderer, int cameraOffsetX, int camer
         };
         
         SDL_RenderFillRect(renderer, &projectileRect);
+    }
+}
+
+void Pet::handleProjectileCollisions(std::vector<Enemy>& enemies, std::vector<Item>& items, Uint32 currentTime) {
+    for (const auto& projectile : m_projectiles) {
+        if (!projectile.active) continue;
+        
+        SDL_Rect projectileRect = {projectile.x, projectile.y, Projectile::SIZE, Projectile::SIZE};
+        
+        for (auto& enemy : enemies) {
+            if (enemy.isActive() && enemy.checkCollision(projectileRect)) {
+                // Enemy hit by pet projectile
+                enemy.takeDamage();
+                
+                // Calculate knockback direction
+                float dx = enemy.getX() - m_x;
+                float dy = enemy.getY() - m_y;
+                float distance = sqrt(dx * dx + dy * dy);
+                enemy.applyKnockback(dx, dy, distance, currentTime);
+                
+                // Handle enemy death and item drops
+                if (!enemy.isActive()) {
+                    enemy.handleDeath(items, currentTime);
+                }
+                
+                // Mark projectile as inactive
+                const_cast<Projectile&>(projectile).active = false;
+                break;
+            }
+        }
     }
 }

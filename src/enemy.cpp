@@ -1,5 +1,7 @@
 #include "enemy.h"
 #include "player.h"
+#include "item.h"
+#include "bitmap_font.h"
 #include <cmath>
 #include <algorithm>
 #include <iostream>
@@ -72,6 +74,23 @@ void Enemy::render(SDL_Renderer* renderer, SDL_Texture* texture, int cameraOffse
         if (redIntensity > 255) redIntensity = 255;
         SDL_SetRenderDrawColor(renderer, redIntensity, 100, 100, 255);
         SDL_RenderFillRect(renderer, &destRect);
+    }
+}
+
+void Enemy::render(SDL_Renderer* renderer, SDL_Texture* texture, int cameraOffsetX, int cameraOffsetY, BitmapFont* font) const {
+    if (!m_active) return;
+    
+    // Render the enemy sprite/rectangle first
+    render(renderer, texture, cameraOffsetX, cameraOffsetY);
+    
+    // Render level number on top of enemy
+    if (font) {
+        std::string levelText = std::to_string(m_level);
+        int textX = m_x + cameraOffsetX + getSize() / 2 - (levelText.length() * 4); // Center the text
+        int textY = m_y + cameraOffsetY + getSize() / 2 - 4; // Center vertically
+        
+        SDL_Color textColor = {255, 255, 255, 255}; // White text
+        font->renderText(renderer, levelText, textX, textY, textColor);
     }
 }
 
@@ -229,4 +248,41 @@ void Enemy::getShardProperties(int& value, SDL_Color& color) const {
         value = 5;
         color = {255, 255, 0, 255}; // Yellow
     }
+}
+
+void Enemy::handleDeath(std::vector<Item>& items, Uint32 currentTime) {
+    // Create shard item
+    Item shard;
+    int shardValue;
+    SDL_Color shardColor;
+    getShardProperties(shardValue, shardColor);
+    shard.initialize(getCenterX() - Item::SHARD_SIZE/2, 
+                    getCenterY() - Item::SHARD_SIZE/2, 
+                    ItemType::SHARD, currentTime, shardValue, shardColor);
+    items.push_back(shard);
+    
+    // 1% chance to drop magnet
+    if (shouldDropMagnet()) {
+        Item magnet;
+        magnet.initialize(getCenterX() - Item::MAGNET_SIZE/2, 
+                        getCenterY() - Item::MAGNET_SIZE/2, 
+                        ItemType::MAGNET, currentTime);
+        items.push_back(magnet);
+    }
+}
+
+bool Enemy::shouldDropMagnet() const {
+    return (rand() % 100) < Item::MAGNET_DROP_CHANCE;
+}
+
+Enemy Enemy::createEnemy(int x, int y, int level, float speed, Uint32 spawnTime) {
+    Enemy enemy;
+    enemy.initialize(x, y, level, speed, spawnTime);
+    return enemy;
+}
+
+int Enemy::calculateLevel(int playerScore) {
+    int level = 1 + (playerScore / 10);
+    if (level > MAX_ENEMY_LEVEL) level = MAX_ENEMY_LEVEL;
+    return level;
 }

@@ -71,3 +71,18 @@ void Item::moveTowardsPlayer(int playerCenterX, int playerCenterY) {
     }
 }
 
+bool Item::handleCollection(const SDL_Rect& playerRect, Uint32 currentTime, int& playerScore, Uint32& magnetEffectEndTime) {
+    if (!isActive() || !checkCollisionWithPlayer(playerRect)) {
+        return false;
+    }
+    
+    if (m_type == ItemType::SHARD) {
+        playerScore += m_value;
+    } else if (m_type == ItemType::MAGNET) {
+        magnetEffectEndTime = currentTime + 20000; // 20 seconds
+    }
+    
+    setActive(false);
+    return true;
+}
+
